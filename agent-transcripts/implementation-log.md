@@ -1,0 +1,22 @@
+# Agent implementation log: failures and corrections
+
+This is a concise engineering record, not a raw conversation export. It deliberately contains no credentials, user identifiers, or licensed transcript passages.
+
+## Observed failures and corrections
+
+- A reported chat request took about 103 seconds with a `RuntimeError`, consistent with the configured 90-second synchronous Ollama request timing out plus surrounding request work. The supplied log did not contain a message or traceback, so it cannot establish whether retrieval embedding or `/api/chat` raised. RAG now emits stage-specific duration/failure records; JSON exception logs include sanitized chained messages and frame locations without source lines, prompts, or passage text. Ollama answers are capped at 512 generated tokens and the RAG prompt requests concise answers. A local minimal `/api/chat` call completed in 4.01 seconds; full RAG is unverified here because this Python environment lacks ChromaDB and the Claude SDK.
+- The local-demo model setting named `llama3.1:8b` did not match the provided installed `llama3:latest` tag. The app and safe example now use `llama3:latest`. The working tree environment has Ollama unreachable and `chromadb` missing, so the live chat request cannot be verified here; chat service initialization and request stack traces are now logged server-side while API error details remain sanitized.
+- PostgreSQL was reachable and Alembic applied revision `0001_chat_artifacts`; a direct query confirmed the recorded revision. Offline SQL generation succeeded as a separate migration check.
+- A developer-specific database password was embedded in the Python settings fallback. It was replaced with a clearly local-only placeholder; `.env.example` remains credential-free apart from example database credentials.
+- Artifact word counts previously counted raw Markdown/HTML/CSS/script markup instead of essay prose. Counts now strip Markdown syntax/code and parse only visible HTML text; tests cover both formats, and the UI displays the saved count.
+- Retrieval now detects query embedding dimensions that differ from the existing Chroma vectors before issuing a query. This prevents a vague Chroma exception and preserves existing index files.
+- Backend dependency declarations include `chromadb>=0.6.3,<2`, but `python -m pip show chromadb` confirms it is missing in the active environment. Installation via `python -m pip install "chromadb>=0.6.3,<2"` was blocked by sandbox network policy (PyPI connection WinError 10013). On the user machine install the declared set with `python -m pip install -r backend/requirements.txt`. Frontend TypeScript checking passes; Vitest/build are blocked as esbuild attempts ancestor directory traversal beyond the workspace. Docker Desktop is installed but its daemon is unavailable.
+- The initial health-test invocation from the repository root could not import `app`. The test setup was corrected to put `backend/` on the test import path; subsequent backend test runs passed.
+- The first UI build attempt failed with `tsc` not found because frontend dependencies were not installed. A dependency installation attempt stalled without output and was stopped; the UI build remains unverified until dependencies are installed.
+- Dataset validation completed, but live ChromaDB indexing could not start because the `chromadb` package was unavailable. The configured Ollama endpoint was also unreachable. These checks were reported as unavailable, not as successful integrations.
+- Chat persistence tests initially use SQLite because PostgreSQL was not reachable with the current configuration. The code now includes a real initial Alembic migration; PostgreSQL migration/startup still needs verification against an available server.
+- Citation handling was tightened so generated labels absent from retrieved sources are removed; tests cover this case. Empty retrieval still returns no citations and does not call the text model.
+
+## Current verification snapshot
+
+Latest rerun: `python -m pytest backend/tests -q` passed (42 tests); `python -m pip check` reported no broken requirements; TypeScript no-emit check passed; PostgreSQL migration revision was confirmed. ChromaDB/Ollama chat, cloud/Claude providers, Docker build, Vitest, production frontend build, browser security, and live API startup remain unverified here. Synthetic tests establish deterministic code behavior only.
