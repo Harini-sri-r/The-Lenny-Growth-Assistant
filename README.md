@@ -47,7 +47,7 @@ To send one intentional Gemini smoke request after setting `GEMINI_API_KEY` and 
 python -c "import sys; sys.path.insert(0, 'backend'); from app.core.config import get_settings; from app.agents.providers import GeminiProvider; s = get_settings(); print(GeminiProvider(s.gemini_api_key, s.gemini_model, s.llm_timeout_seconds).generate('Reply with one short sentence.', 'Say: Gemini API smoke test succeeded.'))"
 ```
 
-Generate an essay from the UI or call `POST /api/v1/artifacts/ship30` with `user_id`, `session_id`, `topic`, `audience`, and `artifact_format` (`markdown` or `html`). Artifacts are saved per browser workspace and expose the actual generated word count and transcript references. Markdown artifacts currently display as safely escaped, preformatted text rather than fully rendered Markdown. HTML previews run in a sandboxed iframe with restrictive CSP; do not weaken those restrictions.
+Generate an essay from the UI or call `POST /api/v1/artifacts/ship30` with `user_id`, `session_id`, `topic`, `audience`, and `artifact_format` (`markdown` or `html`). Artifacts are saved per browser workspace and expose the actual generated word count and transcript references. Markdown artifacts render headings, emphasis, lists, links, code, blockquotes, and citations in the Artifact Viewer; raw HTML remains inert text. HTML previews run in a sandboxed iframe with restrictive CSP; do not weaken those restrictions.
 
 The UI stores a random workspace ID in browser local storage and uses it to scope independent sessions. This is session separation for the local demo, not authentication; do not expose the API publicly without adding real user authentication and authorization. Apply Alembic migrations before starting the API.
 

@@ -65,3 +65,19 @@ def test_provider_status_reports_gemini_cloud_route_without_connectivity_claim(m
     assert gemini["state"] == "selected"
     assert "test-only-secret" not in response.text
     assert "connectivity" in result["note"]
+
+
+def test_provider_status_marks_ollama_selected_for_pi_ollama(monkeypatch):
+    from app.api.routes import health as route
+    from app.core.config import Settings
+    monkeypatch.setattr(route, "get_settings", lambda: Settings(
+        _env_file=None, agent_framework="pi_coding_agent", llm_provider="ollama",
+        ollama_model="qwen2.5:3b",
+    ))
+
+    result = client.get("/api/v1/providers").json()
+    providers = {provider["id"]: provider for provider in result["providers"]}
+
+    assert result["configured_route"] == "pi_ollama"
+    assert providers["ollama"]["state"] == "selected"
+    assert providers["ollama"]["model"] == "qwen2.5:3b"

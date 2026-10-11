@@ -178,7 +178,7 @@ def test_ship30_retention_topic_generates_from_relevant_retrieved_evidence(clien
                     "Start by tracking D7 retention and using the product as a new customer to find first-use friction. [S1]\n\n"
                     + " ".join([
                         "The source says early retention remains important and recommends signing up from scratch to dogfood the experience. [S1]"
-                    ] * 110)
+                    ] * 70)
                 ),
                 grounded=True,
                 sources=[SourceReference(
@@ -292,14 +292,13 @@ def test_ship30_endpoint_deduplicates_essay_before_persisting_artifact(client, m
         "agent_framework": "rag_service", "ship30_minimum_response_words": 1150,
         "llm_provider": "ollama",
     })())
-    paragraph = "Teams should learn from customers before shipping a solution. [S1]"
-    duplicate_content = "# Retention\n\n" + "\n\n".join([paragraph] * 30)
-    unique_content = "# Retention\n\n" + "\n\n".join(
-        f"Teams should learn from customers before shipping a solution. The approach helps cohort {index} teams prioritize their roadmap with more confidence. [S1]"
-        for index in range(1, 90)
-    )
+    paragraphs = [
+        f"Teams can learn from cohort {index} customers before choosing a practical solution for retention. [S1]"
+        for index in range(1, 151)
+    ]
+    one_essay = "# A grounded retention essay\n\n" + "\n\n".join(paragraphs)
     app.dependency_overrides[get_claude_research_agent] = lambda: StubEssayAgent(Answer(
-        duplicate_content + "\n\n" + unique_content,
+        one_essay + "\n\n" + one_essay,
         [SourceReference("S1", "Retention", "podcast", "podcasts/retention.md", None, "retention-1")],
         True,
     ))
@@ -309,8 +308,11 @@ def test_ship30_endpoint_deduplicates_essay_before_persisting_artifact(client, m
     })
     assert response.status_code == 201
     saved = response.json()["content"]
-    assert saved.count(paragraph) == 1
-    assert response.json()["word_count"] <= 1350
+    assert saved.count("# A grounded retention essay") == 1
+    assert all(saved.count(paragraph) <= 1 for paragraph in paragraphs)
+    assert any(saved.count(paragraph) == 1 for paragraph in paragraphs)
+    assert 1150 <= response.json()["word_count"] <= 1350
+    assert 1150 <= response.json()["word_count"] <= 1350
 
 
 @pytest.mark.parametrize(("failure", "status", "message"), [

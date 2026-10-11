@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.agents.lenny_agent import _deduplicate_essay, _filter_specific_claims, _normalize_citations, _trim_essay_to_word_limit, format_search_results, ship30_system_prompt
+from app.agents.lenny_agent import _deduplicate_essay, _filter_specific_claims, _merge_pi_essay, _normalize_citations, _trim_essay_to_word_limit, format_search_results, ship30_system_prompt
 from app.rag.retrieval import Passage
 from app.agents.lenny_agent import ClaudeResearchAgent, PiCodingAgent, _pi_essay_word_count
 from app.services.rag import INSUFFICIENT_EVIDENCE
@@ -419,6 +419,18 @@ def test_ship30_deduplicates_repeated_paragraphs_and_caps_length():
     )
     bounded = _trim_essay_to_word_limit(oversized)
     assert _pi_essay_word_count(bounded) <= 1350
+
+
+def test_pi_ship30_merge_deduplicates_a_continuation_that_echoes_the_entire_draft():
+    draft = "# Retention begins with first use\n\n## Find early friction\n\nTeams should sign up as a new customer. [S1]"
+    continuation = draft + "\n\n## Turn evidence into action\n\nTeams can remove the friction they observe. [S1]"
+
+    merged = _merge_pi_essay(draft, continuation)
+
+    assert merged.count("# Retention begins with first use") == 1
+    assert merged.count("## Find early friction") == 1
+    assert merged.count("Teams should sign up as a new customer.") == 1
+    assert "## Turn evidence into action" in merged
 
 
 def test_ship30_drops_person_company_and_metric_claims_without_matching_cited_evidence():

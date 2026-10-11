@@ -128,16 +128,19 @@ def generate_ship30(payload: ArtifactRequest, db: Session = Depends(get_db), age
             status_code=422,
             detail="The transcript library did not return enough relevant evidence for this essay. Try a narrower topic or focus on a subject covered in the source library.",
         )
-    word_count = _artifact_word_count(answer.answer, payload.artifact_format)
     from app.agents.lenny_agent import _deduplicate_essay
     answer = answer.__class__(
         _deduplicate_essay(answer.answer), answer.sources, answer.grounded, answer.refusal_reason,
     )
+    # Count only after normalization: this exact string is what gets persisted.
+    word_count = _artifact_word_count(answer.answer, payload.artifact_format)
     if payload.artifact_format == "markdown" and word_count > 1350:
         from app.agents.lenny_agent import _trim_essay_to_word_limit
+        # Leave margin for citation and Markdown tokens counted differently by the Pi adapter.
         answer = answer.__class__(
-            _trim_essay_to_word_limit(answer.answer, 1200), answer.sources, answer.grounded, answer.refusal_reason,
+            _trim_essay_to_word_limit(answer.answer, 1250), answer.sources, answer.grounded, answer.refusal_reason,
         )
+        word_count = _artifact_word_count(answer.answer, payload.artifact_format)
     word_count = _artifact_word_count(answer.answer, payload.artifact_format)
     valid_labels = {f"[{source.source_id}]" for source in answer.sources}
     citation_count = sum(1 for match in re.finditer(r"\[S\d+\]", answer.answer) if match.group(0) in valid_labels)

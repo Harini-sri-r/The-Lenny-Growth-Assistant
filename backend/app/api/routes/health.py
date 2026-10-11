@@ -52,10 +52,10 @@ def provider_status() -> dict:
             "ollama": "Ollama local provider",
         }[route],
         "providers": [
-            {"id": "ollama", "label": "Ollama", "supported": True, "state": "selected" if route in {"ollama", "pi_ollama"} else "fallback", "model": settings.ollama_model},
+            {"id": "ollama", "label": "Ollama", "supported": True, "state": "selected" if route in {"ollama", "pi_ollama"} else "fallback" if route in {"anthropic_with_ollama_fallback", "openai_with_ollama_fallback", "gemini_with_ollama_fallback", "ollama_missing_gemini_credentials", "ollama_missing_anthropic_credentials"} else "optional", "model": settings.ollama_model},
             {"id": "anthropic", "label": "Anthropic", "supported": True, "state": "selected" if route == "anthropic_with_ollama_fallback" else "credentials_missing" if not anthropic_configured else "optional", "model": settings.claude_agent_model},
             {"id": "gemini", "label": "Gemini", "supported": True, "state": "selected" if route in {"gemini_with_ollama_fallback", "pi_gemini"} else "fallback" if route == "ollama_missing_gemini_credentials" else "credentials_missing" if not gemini_configured else "optional", "model": settings.gemini_model},
-            {"id": "openai", "label": "OpenAI", "supported": True, "state": "selected" if route == "openai_with_ollama_fallback" else "credentials_missing" if not openai_configured else "optional", "model": settings.openai_model},
+            {"id": "openai", "label": "OpenAI", "supported": True, "state": "selected" if route == "openai_with_ollama_fallback" else "credentials_missing" if framework == "rag_service" and configured_provider == "openai" and not openai_configured else "optional", "model": settings.openai_model},
         ],
         "note": "Configuration only; connectivity is not verified. Pi uses the selected provider directly. In rag_service, Ship 30 uses its selected provider directly; regular cloud chat may fall back to Ollama.",
     }

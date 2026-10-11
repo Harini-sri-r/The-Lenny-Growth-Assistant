@@ -69,7 +69,18 @@ def _merge_continuation(draft: str, continuation: str) -> str:
 
 def _deduplicate_paragraphs(text: str) -> str:
     """Remove repeated paragraphs within a complete provider response."""
-    merged = _merge_continuation("", text)
+    # Some continuation models return the whole draft twice. Remove repeated
+    # complete blocks before paragraph-level deduplication so a repeated essay
+    # does not consume the artifact word budget and force truncation.
+    normalized_text = text.strip()
+    paragraphs = re.split(r"\n\s*\n", normalized_text)
+    if len(paragraphs) % 2 == 0:
+        midpoint = len(paragraphs) // 2
+        first = "\n\n".join(paragraphs[:midpoint]).strip()
+        second = "\n\n".join(paragraphs[midpoint:]).strip()
+        if first and second and re.sub(r"\s+", " ", first).casefold() == re.sub(r"\s+", " ", second).casefold():
+            normalized_text = first
+    merged = _merge_continuation("", normalized_text)
     return merged if merged.strip() else text.strip()
 
 

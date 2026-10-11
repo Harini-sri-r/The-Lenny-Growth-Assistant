@@ -91,6 +91,19 @@ describe('App', () => {
     expect(screen.getAllByRole('status').some(node => node.textContent?.includes('Essay generated and saved to this conversation.'))).toBe(true)
   })
 
+  it('renders saved Markdown artifacts in the Artifact Viewer', async () => {
+    vi.mocked(chatApi.listArtifacts).mockResolvedValue([{
+      ...artifact, artifact_format: 'markdown',
+      content: '# Retention that lasts\n\nHelp users **reach value** early. [S1]',
+    }])
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Retention essay/ }))
+    expect(await screen.findByRole('heading', { name: 'Retention that lasts' })).toBeInTheDocument()
+    expect(screen.getByText('reach value')).toHaveProperty('tagName', 'STRONG')
+    expect(screen.getByText(/\[S1\]/)).toBeInTheDocument()
+  })
+
   it('shows generation errors and keeps the topic available for retry without a fake preview', async () => {
     vi.mocked(chatApi.createShip30Artifact).mockRejectedValueOnce(new Error('The transcript library did not return sufficient evidence.'))
     render(<App />)

@@ -88,6 +88,16 @@ def _pi_essay_word_count(response: str) -> int:
     return len(re.findall(r"\b[\w'-]+\b", text))
 
 
+def _artifact_word_count(response: str) -> int:
+    """Count visible essay words using the same Markdown rules as artifact persistence."""
+    text = re.sub(r"```.*?```", " ", response, flags=re.DOTALL)
+    text = re.sub(r"`[^`]*`", " ", text)
+    text = re.sub(r"\[[^\]]+\]\([^)]+\)", " ", text)
+    text = re.sub(r"\[[Ss]\d+\]", " ", text)
+    text = re.sub(r"[#*_>`~]", " ", text)
+    return len(re.findall(r"\b[\w'-]+\b", text))
+
+
 def _merge_pi_essay(draft: str, continuation: str) -> str:
     if re.search(r"<html\b", draft, re.IGNORECASE):
         body = re.search(r"<body\b[^>]*>(.*?)</body\s*>", continuation, re.IGNORECASE | re.DOTALL)
@@ -148,11 +158,11 @@ def _filter_specific_claims(text: str, evidence_by_id: dict[str, str]) -> str:
             evidence = " ".join(evidence_by_id.get(label, "") for label in labels)
             numbers = re.findall(r"(?<!\w)(?:\$\s*)?\d+(?:[,.]\d+)*(?:%|x|k|m|b)?\b", sentence, re.I)
             specific_names = re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b", sentence)
+            # Exclude sentence-initial words and common heading/essay words.
+            specific_names = [name for name in specific_names if name.split()[0] not in {"The", "This", "That", "When", "What", "How", "A", "In", "For", "One", "Start", "Build", "Make", "Use", "Product", "Customer", "Companies", "Teams"}]
             if not numbers and not specific_names:
                 retained.append(sentence)
                 continue
-            # Exclude sentence-initial words and common heading/essay words.
-            specific_names = [name for name in specific_names if name.split()[0] not in {"The", "This", "That", "When", "What", "How", "A", "In", "For", "One", "Start", "Build", "Make", "Use", "Product", "Customer", "Companies", "Teams"}]
             allowed_names = re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b", evidence)
             allowed_names = [name for name in allowed_names if name.split()[0] not in {"The", "This", "That", "When", "What", "How", "A", "In", "For", "One", "Start", "Build", "Make", "Use", "Product", "Customer", "Companies", "Teams"}]
             if any(number not in evidence for number in numbers) or any(name not in allowed_names for name in specific_names):
@@ -410,8 +420,6 @@ class ClaudeResearchAgent:
         response = _filter_specific_claims(response, evidence_by_id)
         if recognized_ids and not unknown_ids:
             response = _deduplicate_essay(response) or original_response
-        # Preserve citations on plain recommendations and procedural claims;
-        # specific names and figures were checked against the exact passages.
         if not response.strip() or not recognized_ids or unknown_ids:
             reason = "unknown_citation" if unknown_ids else "no_valid_citation" if not recognized_ids else "empty_model_response"
             extra = {
