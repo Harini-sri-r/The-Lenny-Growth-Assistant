@@ -8,7 +8,7 @@ Lenny Growth Assistant helps product managers and startup operators explore advi
 - Ask product and growth questions; receive answers only when relevant indexed evidence is found, with source references.
 - Generate an approximately 1,250-word essay for a specified audience using the Ship 30 for 30 skill and retrieved transcript evidence.
 - Save Markdown or HTML/CSS essays as artifacts and inspect them in the Artifact Viewer.
-- Use Ollama for the local demo or configure a cloud LLM. The Claude Agent SDK powers the research-agent and essay flow.
+- Use Ollama by default for local chat and Ship 30 generation without cloud credentials. OpenAI and Claude Agent SDK are optional cloud providers; missing credentials or failed cloud calls fall back to Ollama. Live cloud generation requires valid credentials.
 
 ## Current implementation
 FastAPI chat/session routes persist workspace metadata, messages, citations, and artifacts. Transcript loading, chunking, embeddings, ChromaDB indexing, retrieval thresholds, source metadata, and insufficient-evidence behavior are implemented. The frontend is React/TypeScript/Vite. Artifact HTML is displayed in a sandboxed iframe with a restrictive CSP. PostgreSQL schema changes use Alembic.

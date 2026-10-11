@@ -56,8 +56,22 @@ class JsonFormatter(logging.Formatter):
             "podcast_filtered_count", "duplicate_source_count", "retained_passages",
             "podcast_only", "context_passage_count", "context_dropped_count", "context_sources",
             "validation_sentence_count", "validation_supported_count", "validation_rejection",
-            "validation_dropped_count",
+            "validation_dropped_count", "category", "word_count",
             "context_truncated_count", "context_char_count", "context_char_limit",
+            "query_kind", "relevance_scores", "topic_chars", "answer_chars", "source_ids",
+            "citation_count", "recognized_labels", "unrecognized_labels",
+            "response_source", "assistant_message_count", "result_message_count", "text_block_count",
+            "content_block_types", "response_kind", "response_chars", "retried", "retry_count",
+            "selected_provider", "provider", "model", "attempt_number", "attempt_count",
+            "raw_word_count", "validated_word_count", "final_word_count", "continuation_word_count",
+            "words_removed_by_validation", "uncited_sentence_count", "invalid_citation_sentence_count",
+            "invalid_citation_count", "output_chars", "output_words", "input_tokens", "output_tokens",
+            "total_tokens", "first_response_word_count", "first_response_output_tokens",
+            "continuation_output_tokens", "configured_output_token_limit", "finish_reason",
+            "first_finish_reason", "truncated", "first_truncated", "max_continuations",
+            "max_generation_calls", "no_progress_count", "dropped_sentences", "elapsed_ms",
+            "failure_message", "failure_category", "stderr_category", "sdk_error_category", "sdk_error_count", "exit_code", "api_error_status",
+            "terminal_reason", "subtype",
         ):
             if hasattr(record, key):
                 payload[key] = getattr(record, key)

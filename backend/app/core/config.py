@@ -2,7 +2,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _source_root = Path(__file__).resolve().parents[3]
@@ -27,15 +27,24 @@ class Settings(BaseSettings):
     retrieval_min_similarity: float = 0.25
     rag_diagnostics: bool = False
     llm_timeout_seconds: float = 90
+    ollama_generation_timeout_seconds: float = Field(default=240, gt=0)
     llm_provider: str = "ollama"
-    # Claude Agent SDK is the required agent path; RAG remains selectable for
-    # the local Ollama demo and for environments without Claude credentials.
-    agent_framework: str = "claude_agent_sdk"
+    ship30_generation_timeout_seconds: float = Field(default=180, gt=0)
+    ship30_max_output_tokens: int = Field(default=3000, gt=0)
+    ship30_minimum_response_words: int = Field(default=1150, gt=0)
+    ship30_max_continuations: int = Field(default=3, ge=0, le=3)
+    # Keep the no-credential local Ollama workflow as the application default.
+    agent_framework: str = "rag_service"
+    pi_command: str = "pi"
+    pi_timeout_seconds: float = Field(default=240, gt=0)
+    pi_ship30_timeout_seconds: float = Field(default=900, gt=0)
     claude_agent_model: str = "sonnet"
     claude_agent_max_turns: int = 5
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")

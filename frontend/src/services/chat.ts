@@ -1,6 +1,6 @@
-import type { Artifact, ChatResponse, ChatSession, Message } from '../types/chat'
+import type { Artifact, ChatResponse, ChatSession, Message, ProviderStatus } from '../types/chat'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api/v1'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
@@ -47,6 +47,8 @@ export const sendMessage = (sessionId: string, userId: string, message: string) 
 
 export const listArtifacts = (userId: string) =>
   request<Artifact[]>(`/artifacts?user_id=${encodeURIComponent(userId)}`)
+
+export const getProviderStatus = () => request<ProviderStatus>('/providers')
 
 export const createShip30Artifact = (userId: string, sessionId: string, topic: string, audience: string, artifactFormat: 'markdown' | 'html') =>
   request<Artifact>('/artifacts/ship30', {

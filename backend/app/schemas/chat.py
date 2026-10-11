@@ -47,7 +47,10 @@ class MessageOut(BaseModel):
     role: str
     content: str
     sources: list[SourceOut] = Field(default_factory=list)
-    grounded: bool | None = None
+    grounded: bool | None = Field(
+        default=None,
+        description="True means factual answer sentences carry citations mapped to retrieved sources; semantic entailment is not independently verified.",
+    )
     created_at: datetime
 
 

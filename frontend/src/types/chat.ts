@@ -42,3 +42,16 @@ export type Artifact = {
   word_count: number
   created_at: string
 }
+
+export type ProviderStatus = {
+  configured_route: string
+  route_label: string
+  note: string
+  providers: Array<{
+    id: 'gemini' | 'ollama' | 'anthropic' | 'openai'
+    label: string
+    supported: boolean
+    state: 'selected' | 'fallback' | 'optional' | 'credentials_missing' | 'unavailable'
+    model: string | null
+  }>
+}

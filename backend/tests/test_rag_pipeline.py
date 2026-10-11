@@ -215,6 +215,53 @@ def test_retrieval_threshold_and_empty_query():
     assert retriever.retrieve("  ") == []
 
 
+def test_retention_query_filters_high_similarity_distribution_only_passages():
+    store = MemoryStore()
+    metadata = [
+        {"source_path": "podcasts/distribution.md", "chunk_id": "distribution", "title": "Consumer distribution"},
+        {"source_path": "podcasts/retention.md", "chunk_id": "retention", "title": "D7 retention"},
+    ]
+    store.upsert(
+        ["distribution", "retention"],
+        ["Consumer distribution and platform strategy for startups.", "Track D7 retention and sign up as an end-user to dogfood the product."],
+        metadata,
+        [[1.0, 0.0], [1.0, 0.0]],
+    )
+
+    class FixedEmbeddings:
+        def embed(self, texts):
+            return [[1.0, 0.0] for _ in texts]
+
+    retriever = Retriever(store, FixedEmbeddings(), top_k=3, min_similarity=.25)
+    passages = retriever.retrieve("How should a startup improve user retention?")
+
+    assert [passage.metadata["chunk_id"] for passage in passages] == ["retention"]
+
+
+def test_retention_question_returns_insufficient_when_only_distribution_evidence_retrieved():
+    store = MemoryStore()
+    store.upsert(
+        ["distribution"],
+        ["Consumer distribution and platform strategy for startups."],
+        [{"source_path": "podcasts/distribution.md", "chunk_id": "distribution", "title": "Distribution"}],
+        [[1.0, 0.0]],
+    )
+
+    class FixedEmbeddings:
+        def embed(self, texts):
+            return [[1.0, 0.0] for _ in texts]
+
+    llm = FakeLLM()
+    answer = RAGService(Retriever(store, FixedEmbeddings(), top_k=3, min_similarity=.25), llm).answer(
+        "How should a startup improve user retention?"
+    )
+
+    assert answer.answer == INSUFFICIENT_EVIDENCE
+    assert answer.grounded is False
+    assert answer.sources == []
+    assert llm.calls == []
+
+
 def test_retrieval_overfetches_and_diversifies_sources_for_podcast_query():
     class RecordingStore(MemoryStore):
         requested_k = None
@@ -296,7 +343,84 @@ def test_rag_generates_only_with_evidence_and_returns_sources():
     assert answer.sources[0].source_id == "S1"
     assert answer.sources[0].url == "https://example.test/episode"
     assert '<source id="S1"' in llm.calls[0][1]
-    assert "up to three distinct, concise one-sentence bullets" in llm.calls[0][0]
+    assert "up to three distinct, useful bullets" in llm.calls[0][0]
+    assert "give a specific recommendation and explain its importance" in llm.calls[0][0]
+    assert "Label a deduction as 'Inference:'" in llm.calls[0][0]
+    assert "Do not surround bullets" in llm.calls[0][0]
+    assert "do not repeat a fixed 'Strategy / This matters because' template" in llm.calls[0][0]
+    assert "off-topic or too thin" in llm.calls[0][0]
+
+
+def test_rag_prompt_requests_strategy_explanation_and_cited_evidence():
+    class DetailedLLM:
+        def generate(self, _system, _user):
+            return (
+                "- Monitor D7 retention by signing up as a new user and dogfooding the first-use experience. [S1]\n"
+                "Returning use shows whether the product is becoming a habit after initial interest. [S1]\n"
+                "- Identify an accumulating advantage the startup can strengthen over time. [S2]\n"
+                "That gives the business a path to become better over time. [S2]"
+            )
+
+    store = MemoryStore()
+    metadata = [
+        {"source_path": "podcasts/retention.md", "chunk_id": "ret-1", "title": "Retention", "document_type": "podcast"},
+        {"source_path": "podcasts/compounding.md", "chunk_id": "comp-2", "title": "Compounding advantages", "document_type": "podcast"},
+    ]
+    store.upsert(
+        ["ret-1", "comp-2"],
+        ["Track D7 retention and dogfood by signing up as an end-user; repeat use can show whether the product forms a habit.",
+         "Look for accumulating advantages that make the business better over time."],
+        metadata,
+        [[1.0, 1.0], [1.0, 1.0]],
+    )
+    answer = RAGService(Retriever(store, FakeEmbeddings(), top_k=2, min_similarity=.5), DetailedLLM()).answer(
+        "Which retention and compounding strategies matter, and why?"
+    )
+
+    assert answer.grounded is True
+    assert "Monitor D7 retention" in answer.answer
+    assert "Returning use shows" in answer.answer
+    assert "Identify an accumulating advantage" in answer.answer
+    assert "That gives the business" in answer.answer
+    assert "It matters because" not in answer.answer
+    assert answer.answer.count("[S1]") == 2
+    assert answer.answer.count("[S2]") == 2
+    assert [(source.source_id, source.source_path, source.chunk_id) for source in answer.sources] == [
+        ("S1", "podcasts/retention.md", "ret-1"),
+        ("S2", "podcasts/compounding.md", "comp-2"),
+    ]
+
+
+def test_rag_cleans_malformed_markdown_and_keeps_citation_metadata_consistent():
+    class MalformedMarkdownLLM:
+        def generate(self, _system, _user):
+            return "* '- Focus on onboarding. [S1]'"
+
+    store = MemoryStore()
+    metadata = {"source_path": "podcasts/retention.md", "chunk_id": "ret-42", "title": "Retention episode", "document_type": "podcast", "post_url": "https://example.test/retention"}
+    store.upsert(["ret-42"], ["The passage discusses onboarding."], [metadata], [[1.0, 1.0]])
+    answer = RAGService(Retriever(store, FakeEmbeddings(), min_similarity=.5), MalformedMarkdownLLM()).answer("retention")
+
+    assert answer.grounded is True
+    assert answer.answer == "- Focus on onboarding. [S1]"
+    assert [(source.source_id, source.source_path, source.chunk_id, source.url) for source in answer.sources] == [
+        ("S1", "podcasts/retention.md", "ret-42", "https://example.test/retention")
+    ]
+
+
+def test_answer_prompt_requires_explicit_supported_inferences():
+    class InferenceLLM:
+        def generate(self, _system, _user):
+            return "Inference: onboarding may help retention. [S1]"
+
+    store = MemoryStore()
+    metadata = {"source_path": "podcasts/retention.md", "chunk_id": "c1", "title": "Retention", "document_type": "podcast"}
+    store.upsert(["c1"], ["The passage discusses onboarding."], [metadata], [[1.0, 1.0]])
+    answer = RAGService(Retriever(store, FakeEmbeddings(), min_similarity=.5), InferenceLLM()).answer("retention")
+
+    assert answer.answer == "Inference: onboarding may help retention. [S1]"
+    # The service tells the generator not to make ungrounded deductions. Citation
+    # validation alone cannot independently prove semantic entailment.
 
 
 def test_rag_limits_context_to_three_sources_for_bounded_local_generation():

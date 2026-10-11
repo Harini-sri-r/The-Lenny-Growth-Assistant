@@ -8,6 +8,24 @@ from app.rag.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
+_INTENT_SEARCHES = {
+    "retention": (
+        ("user_retention", "startup user retention D7 retention cohort repeat use DAU MAU stickiness dogfooding",),
+        ("retention_metrics", "measure early user retention return frequency daily active users product habit",),
+    ),
+    "compounding_advantage": (
+        ("accumulating_advantages", "startup accumulating advantages unfair advantage compounding moat network effects",),
+    ),
+    "distribution": (
+        ("consumer_distribution", "startup consumer distribution channels acquisition platform strategy",),
+    ),
+}
+_INTENT_TERMS = {
+    "retention": ("retention", "d7", "dau", "mau", "repeat use", "return rate", "daily active", "habit", "dogfood", "dogfooding", "end-user", "end user"),
+    "compounding_advantage": ("accumulating advantage", "accumulating advantages", "unfair advantage", "compounding", "network effect", "moat"),
+    "distribution": ("distribution", "acquisition channel", "platform strategy", "consumer channel"),
+}
+
 
 @dataclass(frozen=True)
 class Passage:
@@ -29,7 +47,16 @@ class Retriever:
         try:
             queries = [("question", query)]
             query_lower = query.lower()
-            if "growth" in query_lower or "grow" in query_lower:
+            intents = []
+            if any(term in query_lower for term in ("retention", "sticky", "stickiness", "d7", "dau", "mau", "repeat use")):
+                intents.append("retention")
+            if any(term in query_lower for term in ("accumulating advantage", "unfair advantage", "compounding", "moat", "network effect")):
+                intents.append("compounding_advantage")
+            if any(term in query_lower for term in ("distribution", "acquisition channel", "platform strategy")):
+                intents.append("distribution")
+            for intent in intents:
+                queries.extend(_INTENT_SEARCHES[intent])
+            if not intents and ("growth" in query_lower or "grow" in query_lower):
                 queries.append(("growth_focus", 
                     "product growth lessons: improve activation and the new-user aha moment; "
                     "improve engagement and retention; use experimentation, distribution, "
@@ -88,10 +115,23 @@ class Retriever:
             log_rag_diagnostic(logger, "rag_retrieval_failed", retriever_id=id(self), error_type=type(exc).__name__)
             raise
         ordered = sorted(ranked.values(), key=lambda item: item[1], reverse=True)
+        intent_terms = tuple(term for intent in intents for term in _INTENT_TERMS[intent])
+        topic_filtered_count = 0
+
+        def matches_requested_topic(row: dict) -> bool:
+            nonlocal topic_filtered_count
+            if not intent_terms:
+                return True
+            text = f"{row.get('text', '')} {row['metadata'].get('title', '')}".lower()
+            relevant = any(term in text for term in intent_terms)
+            if not relevant:
+                topic_filtered_count += 1
+            return relevant
+
         eligible = {
             str(row["metadata"].get("chunk_id") or row.get("text", "")): Passage(row["text"], row["metadata"], row["similarity"])
             for row, _score, _rank in ordered
-            if row["similarity"] >= self.min_similarity
+            if row["similarity"] >= self.min_similarity and matches_requested_topic(row)
         }
         candidates = [
             eligible[str(row["metadata"].get("chunk_id") or row.get("text", ""))]
@@ -146,6 +186,7 @@ class Retriever:
             filtered_count=len(passages), top_k=self.top_k, query_variant_count=len(query_metrics),
             query_metrics=query_metrics, candidate_count=len(ranked), threshold_count=len(candidates),
             podcast_filtered_count=podcast_filtered_count, duplicate_source_count=duplicate_source_count,
+            topic_filtered_count=topic_filtered_count, requested_intents=intents,
             retained_passages=[
                 {
                     "similarity": round(float(p.similarity), 4),
