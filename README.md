@@ -1,10 +1,10 @@
-# Lenny Growth Assistant
+﻿# Lenny Growth Assistant
 
 A starter foundation for a conversational assistant grounded in Lenny's Podcast and Newsletter archive.
 
 ## Current status
 
-Implemented: FastAPI chat/session APIs, PostgreSQL models and Alembic initial migration, ChromaDB/Ollama transcript RAG, Ollama/OpenAI/Gemini provider selection, optional Claude Agent SDK research agent, grounded Ship 30 for 30 essay generation, persisted Markdown/HTML artifacts, isolated HTML preview, structured JSON request logs, and a React/Vite chat and Artifact Viewer UI.
+Implemented: FastAPI chat/session APIs, PostgreSQL models and Alembic initial migration, ChromaDB/Ollama transcript RAG, Ollama/OpenAI/Gemini provider selection, optional Claude Agent SDK and Pi Coding Agent integrations, grounded Ship 30 for 30 essay generation, persisted Markdown/HTML artifacts, isolated HTML preview, structured JSON request logs, and a React/Vite chat and Artifact Viewer UI.
 
 The local Ollama path uses `llama3:latest` and `nomic-embed-text`. Browser-scoped workspace IDs are demo isolation, not authentication. Live PostgreSQL, ChromaDB, Ollama, Claude Agent SDK authentication, and browser preview security must still be checked on the demo machine.
 
