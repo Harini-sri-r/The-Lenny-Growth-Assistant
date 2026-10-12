@@ -1,83 +1,333 @@
-﻿# Lenny Growth Assistant
+# The Lenny Growth Assistant
 
-A starter foundation for a conversational assistant grounded in Lenny's Podcast and Newsletter archive.
+**An AI-powered research and writing assistant for product management and startup growth.**
 
-## Current status
+The Lenny Growth Assistant helps product managers, startup founders, and growth teams discover insights from Lenny's newsletter and podcast transcripts. It combines retrieval-augmented generation (RAG), conversational AI, and document creation in a unified web application.
 
-Implemented: FastAPI chat/session APIs, PostgreSQL models and Alembic initial migration, ChromaDB/Ollama transcript RAG, Ollama/OpenAI/Gemini provider selection, optional Claude Agent SDK and Pi Coding Agent integrations, grounded Ship 30 for 30 essay and conversation artifact generation, persisted Markdown/HTML artifacts, isolated HTML preview, structured JSON request logs, and a React/Vite chat and Artifact Viewer UI.
+## Features
 
-The committed `.env.example` defaults to `AGENT_FRAMEWORK=rag_service` and local Ollama using `llama3:latest` and `nomic-embed-text`. The local developer `.env` may select a different agent/model; never commit or display that file.
+- **AI-powered chat:** Ask questions about product management, startup growth, user acquisition, retention, and product strategy.
+- **Retrieval-Augmented Generation (RAG):** Retrieve relevant transcript passages to ground answers in source material.
+- **Source references:** Display relevant source information when available.
+- **Conversation management:** Maintain separate conversations with persistent storage.
+- **Essay generation:** Create structured, long-form essays using a dedicated writing workflow.
+- **Artifact generation:** Generate Markdown documents and supported HTML/CSS artifacts.
+- **Artifact viewer:** Preview generated content within the application.
+- **User authentication:** Account registration, login, and session-based access control.
+- **Local AI support:** Integrate with Ollama for local model inference.
+- **Containerized deployment:** Run the application services through Docker Compose with a single command.
 
-Accounts use scrypt password hashes, generic login errors, expiring opaque database-backed sessions, and session-token rotation. Cookies are HttpOnly, SameSite=Lax, and Secure when HTTPS is detected or `AUTH_COOKIE_SECURE=true`; state-changing authenticated requests require the CSRF token. Signup validates a 12-character minimum and matching confirmation in the UI; the backend repeats security-sensitive validation and handles duplicate-email races. Email verification, password recovery, and a shared-store rate limiter are not configured, so public signup needs those controls or an equivalent deployment-layer rate limit. The account migration retains prior anonymous workspace records but does not automatically assign them to a new account.
+## Technology Stack
 
-New conversations receive a concise local title from the first meaningful user message. Greetings leave the default title in place, manual renames are preserved, and the server persists the generated title on the authenticated session before answer generation; title creation does not call the LLM or add model latency. This deterministic strategy favors reliability and avoids including common credential/contact values in titles, but it does not generate a contextual LLM summary.
+| Component | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Web server | Nginx |
+| Backend | Python, FastAPI |
+| Database | PostgreSQL, SQLAlchemy, Alembic |
+| Vector database | ChromaDB |
+| AI and retrieval | Embeddings, RAG, Ollama, Pi Coding Agent integration |
+| Containerization | Docker, Docker Compose |
+| Testing | Pytest, frontend tests |
 
-## Existing dataset
+## Architecture Overview
 
-The existing dataset remains in `lennys-newsletterpodcastdata-main/`. It contains 50 podcast Markdown files, 10 newsletter Markdown files, `index.json`, and `LICENSE.md` (63 files total, approximately 5.0 MB). The index provides title, date, word count, URL, and podcast guest/description or newsletter subtitle metadata. No transcript content was moved or copied.
+```mermaid
+flowchart TD
+    U[User] --> FE[React Frontend]
+    FE --> NG[Nginx Reverse Proxy]
+    NG --> API[FastAPI Backend]
+    API --> DB[(PostgreSQL)]
+    API --> RAG[RAG Retrieval Pipeline]
+    RAG --> VDB[(ChromaDB)]
+    VDB --> DOC[Lenny Transcript Index]
+    RAG --> AI[Configured LLM / Agent]
+    AI --> API
+    API --> FE
+```
 
-The included starter archive permits personal, non-commercial use. Raw dataset redistribution and commercial use of its raw contents are prohibited by its license. Review `lennys-newsletterpodcastdata-main/LICENSE.md` before sharing or deploying.
+### Request workflow
 
-## Local setup
+1. The user submits a question through the frontend.
+2. FastAPI processes the request and retrieves relevant transcript passages.
+3. ChromaDB provides semantically relevant content from the indexed transcript collection.
+4. The configured AI model generates a response using the retrieved context.
+5. Source references are returned when available.
+6. Conversations and generated outputs are stored in PostgreSQL.
 
-1. Create and activate a Python environment: `python -m venv .venv` then `.venv\\Scripts\\Activate.ps1` (PowerShell) or `source .venv/bin/activate` (macOS/Linux).
-2. Install backend dependencies: `python -m pip install -r backend/requirements.txt`.
-3. Copy `.env.example` to `.env` and edit only local settings. `TRANSCRIPTS_PATH` points at the existing licensed dataset; do not copy it elsewhere.
-4. Start PostgreSQL. For a local `OLLAMA_BASE_URL` (`localhost` or `127.0.0.1`), the backend starts the installed Ollama server on demand and normalizes `localhost` to IPv4 loopback for Windows compatibility. Pull the configured models once with `ollama pull <OLLAMA_MODEL>` and `ollama pull <OLLAMA_EMBEDDING_MODEL>` if they are not already installed. Remote Ollama endpoints and Docker deployments must provide their Ollama server separately.
-5. Apply migrations from the repository root: `alembic -c backend/alembic.ini upgrade head`.
-6. Start the API from the root: `python -m uvicorn --app-dir backend app.main:app --reload`. Health checks: `http://localhost:8000/health` and `/api/v1/health`.
-7. In another terminal run `cd frontend`, `npm ci`, then `npm run dev`; open the URL Vite prints (normally `http://localhost:5173`). Vite proxies `/api` to the local FastAPI service on port 8000, keeping session cookies same-origin.
+## Installation and Setup
 
-### Windows PowerShell startup
+### Prerequisites
 
-Open two PowerShell terminals at the project root. In Terminal 1, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-local.ps1`, then `python -m alembic -c backend/alembic.ini upgrade head`, then `python -m uvicorn --app-dir backend app.main:app --reload`. The preflight checks Python packages (including ChromaDB), configured Ollama model tags, and PostgreSQL TCP reachability. It does not print secrets, migrate, or access the Chroma index. In Terminal 2, run `Set-Location .\frontend`, `npm ci`, `npm test`, `npm run build`, and `npm run dev`. Open the URL Vite prints. If your PowerShell execution policy permits local scripts, `.\scripts\check-local.ps1` runs the preflight directly; the documented process-scoped bypass does not change the saved machine policy.
+Install the following:
+
+- [Git](https://git-scm.com/downloads)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Ollama](https://ollama.com/download)
+
+Docker Desktop must be running before you start the application.
+
+### 1. Download the Project
+
+Clone the GitHub repository:
+
+```bash
+git clone https://github.com/Harini-sri-r/The-Lenny-Growth-Assistant.git
+cd The-Lenny-Growth-Assistant
+```
+
+### 2. Install the Ollama Models
+
+Start Ollama and open a terminal. Download the required local models:
+
+```bash
+ollama pull qwen2.5:3b
+ollama pull nomic-embed-text:latest
+```
+
+Verify the installed models:
+
+```bash
+ollama list
+```
+
+The generation model produces responses, while the embedding model supports semantic retrieval.
+
+### 3. Configure Environment Variables
+
+Create a local `.env` file from the provided example.
+
+Git Bash:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and configure the required database credentials, application ports, model settings, and data paths.
+
+**Important:** If you are using an existing PostgreSQL Docker volume, preserve the credentials with which that database was initialized. Changing the password in `.env` alone does not change the password inside PostgreSQL.
+
+Keep `.env` private and never commit API keys, database passwords, or other credentials.
+
+### 4. Start the Entire Application
+
+From the repository root in Git Bash, run:
+
+```bash
+./start.sh
+```
+
+On Windows Command Prompt or PowerShell, run:
+
+```bat
+start.bat
+```
+
+The startup script uses Docker Compose to build images when required, start the services, wait for database readiness, run migrations, and check service health.
+
+Ensure the required transcript dataset and ChromaDB data are available at the configured paths. Follow the dataset's license terms.
+
+## Access the Application
+
+With the default local configuration:
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend health | http://localhost:8001/health |
+| Frontend API health | http://localhost:5173/api/v1/health |
+| API documentation | http://localhost:8001/docs |
+
+The backend host port can differ if configured in `.env`.
 
 ## Configuration
 
-`.env.example` lists supported settings. Configure `DATABASE_URL`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBEDDING_MODEL`, `LLM_PROVIDER`, and `AGENT_FRAMEWORK`. Defaults target Ollama tags `llama3:latest` and `nomic-embed-text`. `AUTH_COOKIE_SECURE` must be true for HTTPS production and `AUTH_SESSION_DAYS` controls session expiry. `TRANSCRIPTS_PATH` and `CHROMA_PERSIST_DIRECTORY` select the dataset and index. Retrieval controls are `CHUNK_SIZE`, `CHUNK_OVERLAP`, `EMBEDDING_BATCH_SIZE`, `RETRIEVAL_TOP_K`, and `RETRIEVAL_MIN_SIMILARITY`. `LLM_TIMEOUT_SECONDS` controls regular provider requests; Ship 30 uses `SHIP30_GENERATION_TIMEOUT_SECONDS`, `SHIP30_MAX_OUTPUT_TOKENS`, `SHIP30_MINIMUM_RESPONSE_WORDS`, and bounded `SHIP30_MAX_CONTINUATIONS`. Per-attempt diagnostics omit prompts, essay content, and credentials.
+Application settings are managed through `.env`. Refer to `.env.example` for the complete list of supported variables.
 
-`backend/requirements.txt` declares ChromaDB (`chromadb>=0.6.3,<2`) and the other backend packages. If `python -m pip show chromadb` reports it missing, install all declared dependencies from the project root with `python -m pip install -r backend/requirements.txt` (or `python -m pip install "chromadb>=0.6.3,<2"` to install only ChromaDB into the active environment). Then verify with `python -m pip check` and `python -m pip show chromadb`. Use the same Python environment for Uvicorn, ingestion, and migrations.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Application database connection configuration |
+| `POSTGRES_DB` | PostgreSQL database name |
+| `POSTGRES_USER` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | PostgreSQL password |
+| `BACKEND_PORT` | Backend host port |
+| `FRONTEND_PORT` | Frontend host port |
+| `CHROMA_HOST_PATH` | Host directory mounted for ChromaDB persistence |
+| `CHROMA_PERSIST_DIRECTORY` | ChromaDB directory inside the backend container |
+| `TRANSCRIPTS_PATH` | Transcript dataset location |
+| `LLM_PROVIDER` | Selected LLM provider |
+| `AGENT_FRAMEWORK` | Selected agent integration |
+| `OLLAMA_BASE_URL` | Ollama endpoint |
+| `OLLAMA_MODEL` | Local generation model |
+| `OLLAMA_EMBEDDING_MODEL` | Embedding model |
+| `RAG_COLLECTION_NAME` | ChromaDB collection name |
 
-The default is local-only: `AGENT_FRAMEWORK=rag_service` and `LLM_PROVIDER=ollama` run chat and Ship 30 generation without cloud credentials. Pull both configured local models with Ollama: `OLLAMA_MODEL` for generation and `OLLAMA_EMBEDDING_MODEL` for retrieval. Cloud providers are optional. For Gemini, set `LLM_PROVIDER=gemini`, `GEMINI_MODEL` (default `gemini-3.5-flash`), and a valid `GEMINI_API_KEY`, then restart the backend. Ship 30 uses exactly the selected configured provider and does not silently fall back to another model; regular chat retains the existing cloud-to-Ollama fallback. For OpenAI Ship 30, set `LLM_PROVIDER=openai`, `OPENAI_MODEL`, and `OPENAI_API_KEY`. Install the official Python SDK through `python -m pip install -r backend/requirements.txt`. For Claude Agent SDK chat and Ship 30, set `AGENT_FRAMEWORK=claude_agent_sdk`, `CLAUDE_AGENT_MODEL`, `CLAUDE_AGENT_MAX_TURNS`, and a valid `ANTHROPIC_API_KEY`. Live cloud integration requires valid credentials, project access, and available quota; mocked tests do not establish live connectivity. Never put credentials in source code or commit `.env`.
+Configure only providers supported by the current implementation.
 
-Pi Coding Agent integration for this Python backend uses Pi's documented JSON event stream and supports Gemini through `GEMINI_API_KEY` and an OpenAI-compatible Ollama endpoint. Install Pi with `npm install --global @earendil-works/pi-coding-agent`, set `AGENT_FRAMEWORK=pi_coding_agent`, then choose `LLM_PROVIDER=ollama` or `gemini`. Pi receives pre-retrieved labeled passages; backend citation checks still apply. For Ollama, configure `~/.pi/agent/models.json` with base URL `http://localhost:11434/v1`, API `openai-completions`, and a model ID matching `OLLAMA_MODEL`; set the model `maxTokens` high enough for the requested output (at least 2,500 for Ship 30). When Pi returns a cited essay below the minimum, the adapter asks for up to three cited continuations within the overall timeout budget. Pi tools and session persistence are disabled, and Ollama calls run offline with stdin closed. `PI_COMMAND` selects the CLI executable; chat uses `PI_TIMEOUT_SECONDS`, and Pi essays use the separate `PI_SHIP30_TIMEOUT_SECONDS` (900 seconds by default) because local CPU models need more time to write a full essay. Timeout logs identify Pi explicitly.
-Run `python scripts/inspect_dataset.py` for a metadata inventory that does not print transcript bodies. Validate Markdown and estimate chunks without external services using `python scripts/ingest_transcripts.py --validate-only`. **Do not re-index an already populated ChromaDB collection just to start the app or perform the manual UI test plan.** The normal indexing command is incremental and reuses compatible records, but updates or embeds missing chunks. Stale cleanup happens only after successful indexing. `--reindex` clears the configured collection and is only for intentional rebuilds. Override the input with `--path` or `TRANSCRIPTS_PATH`.
+## Local and Cloud Model Configuration
 
-The RAG service returns an explicit insufficient-evidence result with no sources when retrieval finds no relevant passages. For matched passages it asks the selected LLM to answer only from context with `[S1]`-style source labels and returns matching source metadata. Ship 30 targets approximately 1,250 words and may request up to three evidence-grounded continuations, each told the remaining validated word count. It validates the merged output against the configured minimum and retrieved source IDs before any artifact is saved. In `rag_service`, `LLM_PROVIDER=gemini` selects the official Google Gen AI Python SDK adapter for chat and Ship 30; the Gemini model and credential come from `GEMINI_MODEL` and `GEMINI_API_KEY`. The model list and access can change; check Google's [Gemini API models](https://ai.google.dev/gemini-api/docs/models) for current identifiers and availability. `AGENT_FRAMEWORK=claude_agent_sdk` instead opts into Claude Agent SDK for chat and Ship 30; its in-process MCP `search_transcripts` tool queries the configured Chroma collection using Ollama embeddings. Provide valid credentials for live cloud use. Invalid framework configuration and unavailable local services still produce a safe service error. The Ship 30 skill lives in `backend/app/skills/ship30_for_30/SKILL.md`.
+### Local model with Ollama
 
-To send one intentional Gemini smoke request after setting `GEMINI_API_KEY` and `GEMINI_MODEL` in the local `.env`, run this from the project root in PowerShell. It invokes the adapter directly once and prints only the generated response; it is a live API call and may use account quota:
+The application can be configured to use Ollama for local inference.
 
-```powershell
-python -c "import sys; sys.path.insert(0, 'backend'); from app.core.config import get_settings; from app.agents.providers import GeminiProvider; s = get_settings(); print(GeminiProvider(s.gemini_api_key, s.gemini_model, s.llm_timeout_seconds).generate('Reply with one short sentence.', 'Say: Gemini API smoke test succeeded.'))"
+Example settings for Docker:
+
+```dotenv
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=qwen2.5:3b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
 ```
 
-Generate an essay from the UI or call `POST /api/v1/artifacts/ship30` with `user_id`, `session_id`, `topic`, `audience`, and `artifact_format` (`markdown` or `html`). Artifacts are saved per browser workspace and expose the actual generated word count and transcript references. Markdown artifacts render headings, emphasis, lists, links, code, blockquotes, and citations in the Artifact Viewer; raw HTML remains inert text. HTML previews run in a sandboxed iframe with restrictive CSP; do not weaken those restrictions.
+The `host.docker.internal` hostname allows a container to reach Ollama running on the Windows host.
 
-Create an account or sign in through the UI. The API derives session/artifact ownership from the authenticated account and rejects caller-supplied ownership claims. Apply all Alembic migrations before starting the API; the new migrations are additive and preserve existing anonymous sessions, which are not automatically claimed by accounts.
+Check that Ollama is accessible from the backend container:
 
-## Docker
+```bash
+docker compose --env-file .env exec backend python -c "import urllib.request; print(urllib.request.urlopen('http://host.docker.internal:11434/api/tags', timeout=10).status)"
+```
 
-If `.env` does not exist, copy `.env.example` to create it; otherwise merge the `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `BACKEND_PORT`, `FRONTEND_PORT`, and `CHROMA_HOST_PATH` entries into your existing local file. For an existing PostgreSQL volume, keep the credentials it was initialized with. Compose passes the database fields separately and the backend uses SQLAlchemy's URL builder, so special characters such as `@` in the existing password are escaped correctly without changing that password. Then run `docker compose up --build`. PostgreSQL data persists in the `postgres_data` named volume. A one-shot `migrate` service waits for PostgreSQL health and applies Alembic migrations before the API starts; API restarts and replicas do not race migrations. The API has an HTTP health check and Nginx waits for it before starting the frontend. Ports default to 5173 (frontend) and 8000 (API) and can be changed with `FRONTEND_PORT` and `BACKEND_PORT`.
+A successful connectivity check does not guarantee that chat or document generation works; test those workflows separately.
 
-The existing local `./chroma` directory is mounted directly into the API container by default (`CHROMA_HOST_PATH` can select another host directory), preserving the current Chroma index without copying, clearing, or rebuilding it. Keep that directory in place when running Compose; it is excluded from Git and the build context. The licensed transcript archive is mounted read-only for explicit ingestion tasks and is excluded from image builds. Do not run ingestion just to start the application. If ingestion is intentionally needed, first ensure Ollama is running on the host with the configured embedding model available. The API reaches host Ollama at `host.docker.internal:11434`; on Windows, configure Ollama to listen on the host interface accessible to Docker Desktop. Ollama remains a separately managed host service rather than a heavyweight Compose container.
+### Cloud models
 
-The backend image includes the Pi CLI, pinned to `@earendil-works/pi-coding-agent` 1.1.0, for deployments that select `AGENT_FRAMEWORK=pi_coding_agent`. Pi Ollama custom-model configuration is separate from the app `.env`; follow the Pi provider setup above and mount/provision its agent configuration when enabling that framework. The default `AGENT_FRAMEWORK=rag_service` does not require Pi configuration. For production HTTPS, set `AUTH_COOKIE_SECURE=true` and use deployment-managed secrets and TLS; do not reuse the example database password.
+Cloud model usage depends on the providers and routing supported by the current implementation.
 
-Use `docker compose ps` and `docker compose logs --tail=100 db migrate backend frontend` to inspect startup. `docker compose down` stops the services and retains named PostgreSQL data and the local Chroma index. Do not use `docker compose down -v` if you want to keep database contents. The frontend uses same-origin `/api/v1` requests; its Nginx config proxies them to the backend container so `SameSite=Lax` auth cookies work without cross-origin browser requests.
+To configure a cloud provider:
 
-## Tests
+1. Verify that its integration is implemented.
+2. Set the relevant provider and model variables.
+3. Add the required API key to the local `.env`.
+4. Restart the application.
+5. Send a real request and verify the response and backend logs.
 
-From the root run `python -m pytest backend/tests -q`. Frontend checks from `frontend/`: `npm test` and `npm run build` (the build also performs TypeScript checking). RAG automated tests use synthetic Markdown and in-memory vector storage; chat API tests use temporary SQLite and stub services. These do not establish live ChromaDB, Ollama, Claude/cloud provider, Docker or browser security behavior. For manual browser QA use `docs/ui-manual-test-plan.md`, which starts both servers and explicitly avoids re-indexing; the 2-3 minute camera-on demo outline is `docs/demo-plan.md`.
+Never commit credentials or include them in screenshots or recordings. Automatic fallback between providers should not be assumed unless it has been tested.
 
-## Troubleshooting and demo
+## Running and Managing the Application
 
-- `POST /api/v1/chat/sessions/{id}/messages` returns 503: inspect the backend console for the exception type and stack trace; check PostgreSQL/migrations, that `chromadb` dependencies installed in the active environment, Ollama is reachable at `OLLAMA_BASE_URL`, and both model names appear in `ollama list`. The API response intentionally hides infrastructure details.
-- No sources or insufficient-evidence response: verify `CHROMA_PERSIST_DIRECTORY` and `RAG_COLLECTION_NAME` refer to the existing indexed collection, then check embedding model compatibility and retrieval threshold. Don't clear or rebuild the collection as a first troubleshooting step.
-- Migration connection fails: verify `DATABASE_URL` and that PostgreSQL is accepting connections before running the Alembic command.
-- Docker Compose fails: Docker Desktop must be running. The compose backend needs host Ollama at `host.docker.internal:11434`; index only if that volume is not already populated.
+### Stop the application
 
-For a short demo, create a fresh conversation, ask a grounded product question, open its cited source, ask an unrelated question to show abstention, then create an essay and show its real word count and sources. Keep `.env` and raw transcript passages off screen. Follow `docs/demo-plan.md` and `docs/ui-manual-test-plan.md`.
+Git Bash:
 
-## Assignment audit
+```bash
+./stop.sh
+```
 
-See `docs/assignment-audit.md` for a requirement-by-requirement status matrix and verification limits. The referenced assignment PDF was not available in the workspace during the audit; compare this matrix to the original PDF before submission.
+Windows:
+
+```bat
+stop.bat
+```
+
+The stop scripts are intended to stop the project services without deleting persistent database or vector-index data.
+
+### Check service status
+
+```bash
+docker compose --env-file .env ps
+```
+
+### View all logs
+
+```bash
+docker compose --env-file .env logs -f
+```
+
+### View backend logs
+
+```bash
+docker compose --env-file .env logs --tail=100 backend
+```
+
+### Validate the Docker configuration
+
+```bash
+docker compose --env-file .env config --quiet
+```
+
+## Testing
+
+### Backend tests
+
+From the repository root:
+
+```bash
+python -m pytest backend/tests -q
+```
+
+### Frontend tests
+
+```bash
+cd frontend
+npm ci
+npm test
+```
+
+### Frontend production build
+
+```bash
+npm run build
+```
+
+### Manual verification
+
+After startup, verify the following:
+
+1. Register or sign in.
+2. Ask a question and inspect the answer and its source references.
+3. Generate an essay and confirm the result is saved.
+4. Generate an artifact and check its preview.
+5. Refresh the application and verify that saved conversations and outputs persist.
+6. Inspect backend logs for model errors, timeouts, or failed requests.
+
+Health checks confirm service availability but do not guarantee successful AI generation.
+
+## Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Docker services do not start | Check Docker Desktop and inspect Compose service status and logs. |
+| PostgreSQL authentication fails | Verify the credentials used to initialize the existing database volume. |
+| Database migration fails | Inspect migration logs and resolve the reported connection or schema error. |
+| Port is already in use | Configure an available host port in `.env`. |
+| Ollama is unavailable | Start Ollama and check connectivity from the backend container. |
+| Pi executable cannot be found | Verify the Pi executable path and its availability inside the backend image. |
+| Chat returns HTTP 503 | Inspect backend logs for provider, agent, or timeout errors. |
+| Essay or artifact generation fails | Check the selected provider, generation endpoint, retrieved context, and backend logs. |
+| No relevant sources are retrieved | Verify the transcript index, collection name, and configured ChromaDB path. |
+
+Do not delete the PostgreSQL volume or ChromaDB index as a troubleshooting shortcut.
+
+## Security and Data Handling
+
+- Keep API keys and passwords in local environment configuration.
+- Use server-side authentication and ownership checks for protected resources.
+- Treat generated HTML as untrusted and apply the sanitization or isolation controls implemented by the application.
+- Preserve PostgreSQL and ChromaDB data during routine restarts.
+- Respect the transcript dataset's license and avoid redistributing restricted source material.
+
+## Project Documentation
+
+The repository's supporting documentation should cover:
+
+- Product requirements and discovery brief
+- UI/UX design decisions
+- System architecture and API design
+- Sanitized agent transcripts and implementation decisions
+- Automated tests and manual UI verification
+
+Refer to the documentation directories for the actual files available in the repository.
+
+## Project Status
+
+The project includes the full-stack application, Docker Compose configuration, PostgreSQL persistence, semantic transcript retrieval, and AI-provider integration.
+
+End-to-end chat, citation quality, essay generation, and artifact generation should be considered verified only after successful tests in the running environment. Known limitations should be documented clearly.
+
+## Repository
+
+[The Lenny Growth Assistant on GitHub](https://github.com/Harini-sri-r/The-Lenny-Growth-Assistant)
+
+## License
+
+See the repository's `LICENSE` file for software licensing terms. The transcript dataset may have separate licensing requirements.
