@@ -21,7 +21,11 @@ services:
       dockerfile: backend/Dockerfile
     restart: "no"
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     depends_on:
       db:
         condition: service_healthy
@@ -37,7 +41,11 @@ services:
     env_file: .env
     environment:
       TRANSCRIPTS_PATH: /workspace/lennys-newsletterpodcastdata-main
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       CHROMA_PERSIST_DIRECTORY: /app/chroma
     extra_hosts:

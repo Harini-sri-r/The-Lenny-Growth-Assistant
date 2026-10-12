@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL
 
 _source_root = Path(__file__).resolve().parents[3]
 PROJECT_ROOT = _source_root if (_source_root / ".env").exists() else Path(__file__).resolve().parents[2]
@@ -73,8 +74,18 @@ class Settings(BaseSettings):
 
     @property
     def effective_database_url(self) -> str:
-        """Use a safe default DB name/user when DATABASE_URL is unset."""
+        """Build a safely escaped container URL from separate database settings."""
         import os
+        database_host = os.environ.get("DATABASE_HOST")
+        if database_host:
+            return URL.create(
+                drivername="postgresql+psycopg",
+                username=os.environ["POSTGRES_USER"],
+                password=os.environ["POSTGRES_PASSWORD"],
+                host=database_host,
+                port=int(os.environ.get("DATABASE_PORT", "5432")),
+                database=os.environ["POSTGRES_DB"],
+            ).render_as_string(hide_password=False)
         return os.environ.get("DATABASE_URL") or self.database_url
 
 
