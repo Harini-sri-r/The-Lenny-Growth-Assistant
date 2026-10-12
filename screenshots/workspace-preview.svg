@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Lenny Growth Assistant workspace preview</title>
+  <desc id="desc">Illustrated preview of the chat app with conversation sidebar, cited answer, and research and artifacts panel.</desc>
+  <defs>
+    <linearGradient id="page" x2="1" y2="1"><stop stop-color="#fffafb"/><stop offset="1" stop-color="#fff5f8"/></linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#37334b" flood-opacity=".09"/></filter>
+    <style>.nav{font:14px system-ui,sans-serif;fill:#647084}.body{font:15px system-ui,sans-serif;fill:#202b40}.muted{font:12px system-ui,sans-serif;fill:#8290a3}.head{font:700 17px system-ui,sans-serif;fill:#1b2940}.tiny{font:700 10px system-ui,sans-serif;letter-spacing:1px;fill:#8791a0}</style>
+  </defs>
+  <rect width="1200" height="620" rx="24" fill="url(#page)" stroke="#efdde4"/>
+  <rect x="0" y="0" width="230" height="620" rx="24" fill="#fff0f4"/>
+  <path d="M230 0v620" stroke="#f0dce4"/>
+  <rect x="22" y="20" width="42" height="42" rx="14" fill="#343b32"/><text x="38" y="48" font-family="system-ui" font-size="22" font-weight="700" fill="#fff">L</text>
+  <text x="76" y="39" class="head">The Lenny Growth</text><text x="76" y="55" class="tiny">ASSISTANT</text>
+  <rect x="18" y="84" width="194" height="42" rx="11" fill="#fff" stroke="#efd4df"/><text x="34" y="111" class="head">＋ New chat</text>
+  <text x="26" y="159" class="muted">⌕  Search conversations</text><text x="26" y="202" class="tiny">TODAY</text>
+  <rect x="14" y="218" width="202" height="39" rx="9" fill="#ffe5ee"/><text x="27" y="243" class="nav" fill="#253149" font-weight="700">Improving User Activation</text>
+  <text x="27" y="286" class="nav">Product Strategy Priorities</text><text x="27" y="329" class="nav">Growth Experiments</text>
+  <text x="27" y="372" class="nav">Retention Lessons</text><text x="27" y="415" class="nav">Customer Research</text>
+  <rect x="230" y="0" width="735" height="61" fill="#fffafd" stroke="#f0dce4"/>
+  <text x="259" y="38" class="nav" font-weight="700">Improving User Activation</text>
+  <rect x="750" y="16" width="91" height="31" rx="15" fill="#fff" stroke="#ecd5de"/><text x="770" y="36" class="muted">◐ Black mode</text>
+  <rect x="851" y="16" width="101" height="31" rx="15" fill="#fff" stroke="#ecd5de"/><text x="868" y="36" class="muted">● Configured</text>
+  <text x="292" y="111" class="tiny">YOU</text>
+  <rect x="282" y="124" width="640" height="91" rx="17" fill="#ffeaf0" stroke="#f2ceda"/>
+  <text x="303" y="157" class="body">How can I help new users experience the product’s core value</text><text x="303" y="184" class="body">as quickly as possible?</text>
+  <text x="282" y="255" class="tiny">LENNY ASSISTANT</text>
+  <text x="282" y="287" class="body">Reduce friction in the first experience and help users reach a useful</text><text x="282" y="314" class="body">feature sooner. Start by identifying the user characteristics that point</text><text x="282" y="341" class="body">to the right next step, then measure whether activation improves. [S1]</text>
+  <path d="M282 367h640" stroke="#e7e1d8"/><text x="282" y="391" class="tiny">SOURCES</text>
+  <rect x="282" y="402" width="640" height="48" rx="10" fill="#f5f4ef" stroke="#e8e5da"/><text x="298" y="423" class="tiny">S1</text><text x="329" y="423" class="body" font-size="13">A practical guide to activation and first value</text><text x="329" y="439" class="muted">podcast · product growth</text>
+  <rect x="282" y="464" width="640" height="48" rx="10" fill="#f5f4ef" stroke="#e8e5da"/><text x="298" y="485" class="tiny">S2</text><text x="329" y="485" class="body" font-size="13">How teams learn from onboarding behavior</text><text x="329" y="501" class="muted">newsletter · activation</text>
+  <rect x="263" y="548" width="660" height="54" rx="16" fill="#fff" stroke="#efd5de" filter="url(#shadow)"/><text x="284" y="572" class="head" font-size="14">Ask Lenny a question</text><text x="284" y="590" class="muted">Ask about product, growth, or building…</text>
+  <path d="M965 0v620" stroke="#f0dce4"/><rect x="965" y="0" width="235" height="620" fill="#fff8fa"/>
+  <text x="988" y="35" class="tiny">CURRENT CONVERSATION</text><text x="988" y="64" class="head">Research &amp; Artifacts</text>
+  <path d="M986 82h195" stroke="#eddfe4"/><text x="988" y="111" class="head" font-size="14">Research Results</text><text x="1163" y="111" class="muted">2</text>
+  <circle cx="1005" cy="146" r="13" fill="#fff0f4"/><text x="999" y="150" class="tiny">S1</text><text x="1027" y="143" class="body" font-size="12">Activation and first</text><text x="1027" y="159" class="muted">value · podcast</text>
+  <circle cx="1005" cy="190" r="13" fill="#fff0f4"/><text x="999" y="194" class="tiny">S2</text><text x="1027" y="187" class="body" font-size="12">Onboarding behavior</text><text x="1027" y="203" class="muted">· newsletter</text>
+  <path d="M986 226h195" stroke="#eddfe4"/><text x="988" y="255" class="head" font-size="14">Generated Outputs</text><text x="1163" y="255" class="muted">1</text>
+  <rect x="986" y="271" width="196" height="62" rx="11" fill="#fff" stroke="#efd5de"/><text x="1000" y="296" class="body" font-size="12">Activation playbook</text><text x="1000" y="316" class="muted">MARKDOWN · 420 words</text>
+  <rect x="987" y="574" width="196" height="28" rx="14" fill="#fff" stroke="#efd5de"/><text x="1017" y="593" class="muted">Grounded in the library</text>
+</svg>

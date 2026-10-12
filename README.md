@@ -35,37 +35,37 @@ The goal is to make research more accessible while keeping answers connected to 
 
 The login interface provides access to the research workspace.
 
-![Lenny Growth Assistant login and registration interface](docs/screenshots/login.png)
+![Lenny Growth Assistant login and registration interface](screenshots/login-preview.svg)
 
 ### 2. Main Chat Interface
 
 Ask questions about product management, startup growth, user activation, and retention through the conversational interface.
 
-![Lenny Growth Assistant main chat interface](docs/screenshots/chat-interface.png)
+![Lenny Growth Assistant main chat interface](screenshots/workspace-preview.svg)
 
 ### 3. Research Results and Source References
 
 The research panel displays retrieved transcript sources alongside the conversation, making it easier to inspect the supporting material.
 
-![Retrieved research results and source references](docs/screenshots/research-results.png)
+![Retrieved research results and source references](screenshots/research-preview.svg)
 
 ### 4. Essay Generation
 
 The essay workflow supports creating structured, long-form content from a research topic.
 
-![Lenny Growth Assistant essay generation interface](docs/screenshots/essay-generation.png)
+![Lenny Growth Assistant essay generation interface](screenshots/artifact-preview.svg)
 
 ### 5. Generated Content and Saved Outputs
 
 The application provides a dedicated area for viewing generated outputs associated with a conversation.
 
-![Generated essay and saved outputs](docs/screenshots/artifact-generation.png)
+![Generated essay and saved outputs](screenshots/artifact-preview.svg)
 
 ### 6. Appearance Settings
 
 Users can customize the workspace appearance using the available theme and accent-color settings.
 
-![Appearance customization settings](docs/screenshots/appearance-settings.png)
+![Appearance customization settings](screenshots/appearance-preview.svg)
 
 ---
 

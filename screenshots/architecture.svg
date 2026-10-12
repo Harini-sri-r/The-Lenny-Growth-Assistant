@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="590" viewBox="0 0 1200 590" role="img" aria-labelledby="title desc">
+  <title id="title">Lenny Growth Assistant architecture</title>
+  <desc id="desc">React client connects to FastAPI, which uses PostgreSQL for saved chats and artifacts, ChromaDB and Ollama embeddings for retrieval, and an optional cloud or local language model to answer.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#fff7f8"/><stop offset="1" stop-color="#f3f4ff"/></linearGradient>
+    <linearGradient id="api" x2="1"><stop stop-color="#bd6688"/><stop offset="1" stop-color="#8859bd"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#8892a7"/></marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#29324a" flood-opacity=".10"/></filter>
+    <style>.h{font:700 19px system-ui,sans-serif;fill:#192238}.p{font:14px system-ui,sans-serif;fill:#59647b}.small{font:12px system-ui,sans-serif;fill:#68738a}.tag{font:700 11px system-ui,sans-serif;letter-spacing:1.2px;fill:#fff}.line{stroke:#929bb0;stroke-width:2.5;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="590" rx="28" fill="url(#bg)"/>
+  <text x="56" y="62" class="tag" fill="#a35376">HOW A QUESTION BECOMES A GROUNDED ANSWER</text>
+  <text x="56" y="101" class="h" font-size="27">A small web app, a retrieval pipeline, and your saved workspace</text>
+  <g filter="url(#shadow)">
+    <rect x="55" y="190" width="220" height="148" rx="18" fill="#fff" stroke="#eed8e1"/>
+    <text x="80" y="228" class="tag" fill="#a35376">CLIENT</text><text x="80" y="263" class="h">React + Vite</text>
+    <text x="80" y="291" class="p">Chat · sources · artifacts</text><text x="80" y="315" class="p">Session cookie + CSRF</text>
+    <rect x="365" y="172" width="235" height="185" rx="18" fill="url(#api)"/>
+    <text x="391" y="210" class="tag">APPLICATION API</text><text x="391" y="247" font-family="system-ui" font-size="21" font-weight="700" fill="#fff">FastAPI</text>
+    <text x="391" y="278" font-family="system-ui" font-size="14" fill="#fff">Auth · sessions · RAG</text><text x="391" y="303" font-family="system-ui" font-size="14" fill="#fff">Citation checks · artifacts</text><text x="391" y="329" font-family="system-ui" font-size="12" fill="#fff">Alembic migrations</text>
+    <rect x="705" y="145" width="215" height="126" rx="18" fill="#fff" stroke="#d9def0"/>
+    <text x="731" y="181" class="tag" fill="#5966a8">RETRIEVAL</text><text x="731" y="216" class="h">ChromaDB</text><text x="731" y="244" class="p">Transcript chunks</text>
+    <rect x="705" y="304" width="215" height="126" rx="18" fill="#fff" stroke="#d9def0"/>
+    <text x="731" y="340" class="tag" fill="#5966a8">EMBEDDINGS</text><text x="731" y="375" class="h">Ollama</text><text x="731" y="403" class="p">nomic-embed-text</text>
+    <rect x="995" y="145" width="155" height="126" rx="18" fill="#fff" stroke="#d9def0"/>
+    <text x="1019" y="181" class="tag" fill="#5966a8">GENERATION</text><text x="1019" y="216" class="h">Ollama</text><text x="1019" y="244" class="p">or cloud provider</text>
+    <rect x="995" y="304" width="155" height="126" rx="18" fill="#fff" stroke="#d9def0"/>
+    <text x="1019" y="340" class="tag" fill="#5966a8">PERSISTENCE</text><text x="1019" y="375" class="h">PostgreSQL</text><text x="1019" y="403" class="p">Chats · accounts · artifacts</text>
+    <rect x="365" y="426" width="235" height="93" rx="18" fill="#fff" stroke="#eed8e1"/>
+    <text x="391" y="463" class="tag" fill="#a35376">SOURCE LIBRARY</text><text x="391" y="493" class="h" font-size="16">Podcast + newsletter files</text>
+  </g>
+  <path d="M275 264h77" class="line"/><path d="M600 225h94" class="line"/><path d="M600 304h94" class="line"/>
+  <path d="M920 208h67" class="line"/><path d="M920 367h67" class="line"/><path d="M482 426v-58" class="line"/>
+  <text x="56" y="559" class="small">Retrieved passages supply evidence; answers cite matching sources. Chat and artifacts persist in PostgreSQL.</text>
+</svg>
