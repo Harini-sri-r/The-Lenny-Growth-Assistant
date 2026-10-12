@@ -1,209 +1,191 @@
 # The Lenny Growth Assistant
 
-**An AI-powered research and writing workspace for product management, startup growth, and product strategy.**
+### Turn growth knowledge into better product decisions.
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Docker](https://img.shields.io/badge/Deployment-Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![AI](https://img.shields.io/badge/AI-Ollama%20%7C%20RAG-7C3AED)](https://ollama.com/)
+The Lenny Growth Assistant is an AI-powered research and writing workspace that helps product managers, startup founders, and growth teams explore insights from Lenny's podcast and newsletter transcripts.
 
-The Lenny Growth Assistant transforms a collection of podcast and newsletter transcripts into a searchable knowledge workspace. It combines retrieval-augmented generation (RAG), conversational AI, persistent conversations, long-form writing, and document artifacts in one application.
-
-Instead of manually searching through hours of interviews, users can ask focused questions, explore relevant source passages, develop actionable growth strategies, and create reusable documents.
-
-**Core principle:** Ground answers in retrieved source material, preserve references where available, and distinguish supported information from recommendations.
+By combining **Retrieval-Augmented Generation (RAG), conversational AI, semantic search, and document generation**, the application transforms a collection of long-form content into a searchable knowledge base for product research and growth strategy.
 
 ---
 
-## Table of Contents
+## Overview
 
-- [Why This Project?](#why-this-project)
-- [Key Features](#key-features)
-- [Application Preview](#application-preview)
-- [System Architecture](#system-architecture)
-- [Technology Stack](#technology-stack)
-- [Getting Started](#getting-started)
-- [Environment Configuration](#environment-configuration)
-- [Local and Cloud AI](#local-and-cloud-ai)
-- [Using the Application](#using-the-application)
-- [Testing and Verification](#testing-and-verification)
-- [Troubleshooting](#troubleshooting)
-- [Security and Data Handling](#security-and-data-handling)
-- [Project Structure](#project-structure)
-- [Engineering Documentation](#engineering-documentation)
-- [Current Status and Limitations](#current-status-and-limitations)
-- [Future Improvements](#future-improvements)
-- [License and Attribution](#license-and-attribution)
+Product and growth teams regularly need to research topics such as user activation, customer retention, product-market fit, experimentation, and product strategy.
+
+However, valuable insights are often scattered across lengthy podcast episodes and newsletter articles.
+
+The Lenny Growth Assistant provides a unified workspace where users can ask questions, retrieve relevant source material, explore AI-generated answers, and create research documents.
+
+### The core workflow
+
+1. Ask a question about product management, growth, or startup strategy.
+2. Retrieve relevant passages from the indexed transcript collection.
+3. Generate a response using the configured language model and retrieved context.
+4. Inspect available source references.
+5. Create essays and documents using the dedicated writing workflows.
+6. Return to saved conversations and generated outputs.
+
+The goal is to make research more accessible while keeping answers connected to their source material.
 
 ---
 
-## Why This Project?
+## Application Screenshots
 
-Product managers and startup teams often need to research activation, retention, acquisition, pricing, product-led growth, and product strategy. Valuable insights can be scattered across long-form interviews and newsletters.
+### 1. Login and Authentication
 
-A general-purpose chatbot may provide useful suggestions, but it may not identify the specific source behind a recommendation.
+The login interface provides access to the research workspace.
 
-The Lenny Growth Assistant addresses this problem through a source-oriented research workflow:
+![Lenny Growth Assistant login and registration interface](docs/screenshots/login.png)
 
-- **Discover:** Search a transcript collection using natural-language questions.
-- **Understand:** Retrieve relevant passages and use them as context for AI-generated answers.
-- **Validate:** Inspect available source references instead of relying exclusively on unsupported claims.
-- **Create:** Turn research into structured essays, Markdown documents, and supported HTML artifacts.
-- **Continue:** Keep conversations and generated outputs organized for later use.
+### 2. Main Chat Interface
 
-### Intended users
+Ask questions about product management, startup growth, user activation, and retention through the conversational interface.
 
-- Product managers and growth product managers
-- Startup founders and early-stage teams
-- Product marketing professionals
-- Researchers exploring product strategy and growth frameworks
+![Lenny Growth Assistant main chat interface](docs/screenshots/chat-interface.png)
+
+### 3. Research Results and Source References
+
+The research panel displays retrieved transcript sources alongside the conversation, making it easier to inspect the supporting material.
+
+![Retrieved research results and source references](docs/screenshots/research-results.png)
+
+### 4. Essay Generation
+
+The essay workflow supports creating structured, long-form content from a research topic.
+
+![Lenny Growth Assistant essay generation interface](docs/screenshots/essay-generation.png)
+
+### 5. Generated Content and Saved Outputs
+
+The application provides a dedicated area for viewing generated outputs associated with a conversation.
+
+![Generated essay and saved outputs](docs/screenshots/artifact-generation.png)
+
+### 6. Appearance Settings
+
+Users can customize the workspace appearance using the available theme and accent-color settings.
+
+![Appearance customization settings](docs/screenshots/appearance-settings.png)
 
 ---
 
 ## Key Features
 
-### 1. Grounded AI Conversations
+### AI-Powered Research Chat
 
-Ask questions about product strategy, startup growth, user acquisition, activation, retention, and related topics.
+Ask natural-language questions about:
 
-The backend retrieves relevant transcript passages and supplies them to the configured language model as context.
+- Product management and feature prioritization
+- User activation and onboarding
+- Customer retention and churn
+- Startup growth strategies
+- Product-led growth
+- Product-market fit and experimentation
 
-### 2. Retrieval-Augmented Generation
+### Retrieval-Augmented Generation
 
-The retrieval pipeline connects a semantic search index to the answer-generation workflow.
+The RAG pipeline retrieves semantically relevant transcript passages and provides them as context for response generation.
 
-The intended flow is:
+This connects the question-answering workflow to the indexed knowledge base rather than relying solely on the language model's general knowledge.
 
-1. Receive a user question.
-2. Convert the query into a retrieval representation.
-3. Retrieve relevant transcript chunks from ChromaDB.
-4. Supply the retrieved context to the configured generation workflow.
-5. Return the answer with source references when available.
+### Source-Aware Answers
 
-Retrieval quality and answer quality are evaluated separately. Finding a relevant passage does not, by itself, prove that the generated answer is correct.
+Retrieved sources are displayed when available, helping users inspect the material associated with an answer.
 
-### 3. Source-Aware Research
+The quality of citations depends on the retrieval metadata and the correctness of the complete generation workflow.
 
-Relevant transcript passages can be presented alongside assistant responses, helping users inspect the material used to support an answer.
+### Essay Generation
 
-Source availability and citation correctness depend on the indexed metadata and the functioning of the complete generation and verification workflow.
+The application includes a dedicated essay-generation workflow intended for structured, long-form writing. The assignment-specific Ship 30 for 30 skill targets approximately 1,250 words, with a compelling hook, clear sections, skimmable formatting, grounded claims, and a practical takeaway.
 
-### 4. Long-Form Essay Generation
+### Artifact Generation and Viewer
 
-A dedicated writing workflow supports structured, long-form content for topics related to product management and startup growth.
+The artifact workflow supports Markdown documents and supported HTML/CSS content. The Artifact Viewer provides a dedicated area to inspect generated content alongside the conversation.
 
-The intended output includes a strong introduction, organized sections, practical insights, and actionable takeaways.
+Generated HTML should be treated as untrusted content and rendered with appropriate isolation and sanitization controls.
 
-### 5. Document and Artifact Creation
+### Conversation Management
 
-The application includes workflows for creating Markdown documents and supported HTML/CSS artifacts.
+Users can create separate conversations for different research topics and return to their previous discussions.
 
-The Artifact Viewer provides an in-application space to inspect generated content without treating every artifact as an ordinary chat message.
+Conversation titles, messages, timestamps, and other supported records are persisted through the application's database workflows.
 
-### 6. Conversation Management and Persistence
+### Local AI Integration
 
-PostgreSQL stores application data through SQLAlchemy, with database schema changes managed using Alembic migrations.
+Ollama provides a local inference option for supported model workflows, allowing the application to run without requiring a paid cloud inference request for every interaction.
 
-The application is designed to keep conversations and generated outputs available across sessions, subject to the configured authentication, ownership checks, and persistence workflows.
+### Containerized Deployment
 
-### 7. Local AI with Ollama
+Docker Compose coordinates the configured application services, database startup, migrations, and health checks.
 
-The local inference configuration uses Ollama, allowing supported model requests to run on the host machine instead of requiring a paid cloud inference service.
-
-This is useful for development, privacy-conscious workflows, and demonstrations without per-request cloud model charges.
-
-### 8. Containerized Application
-
-Docker Compose coordinates the application services, database readiness, migrations, and startup process.
-
-The repository includes startup and shutdown scripts to simplify running the application on Windows.
-
----
-
-## Application Preview
-
-The interface brings together three main areas:
-
-- **Conversation workspace:** Ask questions and review assistant responses.
-- **Research results:** Inspect retrieved source passages.
-- **Artifacts workspace:** Access generated documents and supported artifacts.
-
-Add screenshots of the actual running application here once the final workflows have been verified.
-
-Suggested repository assets:
-
-- `docs/screenshots/chat.png`
-- `docs/screenshots/research-results.png`
-- `docs/screenshots/artifact-viewer.png`
-
-Use real screenshots from your application rather than mockups presented as working features.
+The repository includes startup and shutdown scripts for a simpler local development experience.
 
 ---
 
 ## System Architecture
 
-The application separates the user interface, API layer, retrieval infrastructure, model integration, and persistence.
+The application separates the user interface, API, retrieval pipeline, model integration, and persistence layer.
 
 ```mermaid
 flowchart TD
     U[User] --> FE[React and TypeScript Frontend]
-    FE --> WEB[Nginx Web Server]
-    WEB --> API[FastAPI Backend]
+    FE --> NGINX[Nginx Web Server]
+    NGINX --> API[FastAPI Backend]
 
-    API --> AUTH[Authentication and Access Control]
+    API --> AUTH[Authentication]
     API --> CHAT[Conversation Management]
-    API --> RAG[RAG Retrieval Pipeline]
-    API --> WRITE[Essay and Artifact Workflows]
+    API --> RAG[RAG Pipeline]
+    API --> GEN[Essay and Artifact Workflows]
 
     RAG --> EMB[Embedding Model]
-    EMB --> VDB[(ChromaDB)]
-    VDB --> DOC[Indexed Transcript Chunks]
+    EMB --> CHROMA[(ChromaDB)]
+    CHROMA --> DOCS[Indexed Transcript Chunks]
 
-    RAG --> LLM[Configured Generation Provider]
-    WRITE --> LLM
+    RAG --> LLM[Configured AI Generation]
+    GEN --> LLM
 
-    LLM --> API
     CHAT --> PG[(PostgreSQL)]
-    WRITE --> PG
+    GEN --> PG
+    LLM --> API
     API --> FE
 ```
 
-### Architecture responsibilities
+### Request lifecycle
 
-| Component | Responsibility |
-|---|---|
-| React and TypeScript | User interface, chat interactions, and research workspace |
-| Nginx | Serves the frontend and supports the configured API routing |
-| FastAPI | API endpoints, request processing, and application orchestration |
-| ChromaDB | Semantic retrieval over indexed transcript chunks |
-| Embedding model | Converts text into vectors for semantic search |
-| Ollama | Local model inference when configured and available |
-| PostgreSQL | Persistent application data |
-| SQLAlchemy | Database access and object-relational mapping |
-| Alembic | Database schema migrations |
-| Docker Compose | Service orchestration and local deployment |
+**Step 1 — User request:** The frontend sends a question to the FastAPI backend.
 
-The diagram describes the intended application architecture. Exact execution paths and provider behavior should be confirmed against the current implementation.
+**Step 2 — Retrieval:** The backend searches the ChromaDB collection for relevant transcript chunks.
+
+**Step 3 — Context preparation:** Retrieved passages are assembled as context for the configured generation workflow.
+
+**Step 4 — AI generation:** The configured model or agent integration generates the response.
+
+**Step 5 — Response delivery:** The application returns the answer and available source references to the frontend.
+
+**Step 6 — Persistence:** Supported conversation and generated-output records are stored in PostgreSQL.
+
+The diagram describes the intended architecture; individual workflows should be verified against the current implementation.
 
 ---
 
 ## Technology Stack
 
-| Layer | Technologies |
+| Component | Technologies |
 |---|---|
 | Frontend | React, TypeScript, Vite |
-| Web serving | Nginx |
+| Web server | Nginx |
 | Backend | Python, FastAPI |
 | Application database | PostgreSQL |
-| ORM and migrations | SQLAlchemy, Alembic |
+| Database access | SQLAlchemy |
+| Database migrations | Alembic |
 | Vector database | ChromaDB |
-| AI inference | Ollama, configured agent integration |
 | Retrieval | Embeddings, semantic search, RAG |
+| Local inference | Ollama |
+| Agent integration | Pi Coding Agent integration |
 | Containerization | Docker, Docker Compose |
-| Testing | Pytest, frontend test suite |
-| Source control | Git, GitHub |
+| Backend testing | Pytest |
+| Frontend testing | Configured frontend test suite |
+| Version control | Git, GitHub |
 
 ---
 
@@ -211,105 +193,92 @@ The diagram describes the intended application architecture. Exact execution pat
 
 ### Prerequisites
 
-Install the following tools before starting:
+Install the following:
 
 - Git
 - Docker Desktop with Docker Compose
 - Ollama
-- Python and Node.js only if you intend to run the relevant development or test commands directly on the host
 
-**Hardware note:** Model performance depends on available RAM, CPU, GPU, and the selected model. Smaller models can run on modest hardware but may produce slower or less reliable long-form answers.
+Python and Node.js are also useful when running tests or developing outside the containers.
+
+Docker Desktop and Ollama should be running before you start the application.
 
 ### 1. Clone the repository
 
-Open Git Bash or a terminal:
+Open Git Bash and run:
 
 ```bash
 git clone https://github.com/Harini-sri-r/The-Lenny-Growth-Assistant.git
 cd The-Lenny-Growth-Assistant
 ```
 
-### 2. Download the required Ollama models
+### 2. Install the local AI models
 
-Make sure Ollama is installed and running.
+Download the configured generation and embedding models:
 
 ```bash
 ollama pull qwen2.5:3b
 ollama pull nomic-embed-text:latest
 ```
 
-Verify the installed models:
+Check the installed models:
 
 ```bash
 ollama list
 ```
 
-The Qwen model is configured for text generation. The embedding model is used for semantic retrieval when the application's embedding configuration matches it.
+The generation model produces text responses. The embedding model supports semantic retrieval when it matches the application's embedding configuration.
 
-### 3. Configure the environment
+### 3. Configure environment variables
 
-Create the local environment file from the example:
+Create a local environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and review the database credentials, application ports, model configuration, and data paths.
+Open `.env` and configure the required database credentials, ports, AI provider, model settings, and data paths.
 
-**Important:** Do not replace the credentials of an existing PostgreSQL database volume without coordinating the actual database credentials. Editing `.env` alone does not change a password already stored in PostgreSQL.
+**Important:** If you already have a PostgreSQL Docker volume, preserve the credentials used to initialize that database. Changing a password in `.env` alone does not change the password stored inside PostgreSQL.
 
-Keep `.env` private. Never commit API keys, database passwords, or other secrets.
+Never commit `.env`, API keys, database passwords, or other secrets to GitHub.
 
 ### 4. Start the application
 
-Ensure Docker Desktop and Ollama are running, then execute the startup script from the repository root.
+From the repository root, run the startup script.
 
-**Git Bash**
+**Git Bash:**
 
 ```bash
 ./start.sh
 ```
 
-**Windows Command Prompt or PowerShell**
+**Windows Command Prompt or PowerShell:**
 
 ```bat
 start.bat
 ```
 
-The launcher is intended to build or start the required containers, wait for database readiness, run migrations, and check service health.
+The startup scripts are designed to start the configured services, wait for database readiness, run migrations, and check service health.
 
-The transcript data and ChromaDB index must also be present at the paths configured for your local environment. Follow the source dataset's license terms.
-
-### 5. Open the application
-
-With the documented default local configuration:
-
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:5173 |
-| Backend health | http://localhost:8001/health |
-| Frontend API health | http://localhost:5173/api/v1/health |
-| API documentation | http://localhost:8001/docs |
-
-These ports may differ if the environment configuration has been changed.
+Make sure the transcript data and ChromaDB index are available at the paths configured for your environment.
 
 ---
 
 ## Environment Configuration
 
-The complete list of supported variables is defined in `.env.example`. Review that file before changing the configuration.
+The `.env.example` file is the reference for supported configuration variables.
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Application database connection configuration, if supported by the current Compose setup |
 | `POSTGRES_DB` | PostgreSQL database name |
 | `POSTGRES_USER` | PostgreSQL username |
 | `POSTGRES_PASSWORD` | PostgreSQL password |
 | `BACKEND_PORT` | Backend host port |
 | `FRONTEND_PORT` | Frontend host port |
-| `CHROMA_HOST_PATH` | Host path used for persistent ChromaDB data |
-| `CHROMA_PERSIST_DIRECTORY` | ChromaDB persistence directory inside the container |
-| `TRANSCRIPTS_PATH` | Location of transcript data |
+| `CHROMA_HOST_PATH` | Host path for persistent ChromaDB data |
+| `CHROMA_PERSIST_DIRECTORY` | ChromaDB directory inside the container |
+| `TRANSCRIPTS_PATH` | Transcript dataset location |
 | `LLM_PROVIDER` | Configured language-model provider |
 | `AGENT_FRAMEWORK` | Agent integration selection |
 | `OLLAMA_BASE_URL` | Ollama API endpoint |
@@ -317,15 +286,13 @@ The complete list of supported variables is defined in `.env.example`. Review th
 | `OLLAMA_EMBEDDING_MODEL` | Embedding model |
 | `RAG_COLLECTION_NAME` | ChromaDB collection name |
 
-Variable names and defaults must match the current `.env.example` and application configuration. Do not add unsupported settings or assume every provider is interchangeable.
+Use only variables supported by the actual project configuration. Review `.env.example` for the complete list and defaults.
 
 ---
 
-## Local and Cloud AI
+## Local AI Setup
 
-### Local inference with Ollama
-
-Example configuration for a backend running in Docker while Ollama runs on the Windows host:
+The example below configures Ollama running on the Windows host while the backend runs inside Docker.
 
 ```dotenv
 LLM_PROVIDER=ollama
@@ -334,70 +301,48 @@ OLLAMA_MODEL=qwen2.5:3b
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
 ```
 
-Use only variable names supported by your current configuration.
+`host.docker.internal` allows Docker Desktop containers to reach services running on the host.
 
-The hostname `host.docker.internal` allows Docker Desktop containers to reach services on the host machine.
-
-Check connectivity from the backend container:
+To check Ollama connectivity from the backend container:
 
 ```bash
 docker compose --env-file .env exec backend python -c "import urllib.request; print(urllib.request.urlopen('http://host.docker.internal:11434/api/tags', timeout=10).status)"
 ```
 
-An HTTP status of `200` confirms that the Ollama tags endpoint is reachable from the container. It does **not** guarantee successful chat, essay, or artifact generation.
+An HTTP status of `200` confirms that the Ollama tags endpoint is reachable. It does not prove that chat, essay, or artifact generation succeeds; test each workflow separately.
 
-Test each generation workflow separately.
+---
 
-### Cloud model configuration
+## Cloud Model Configuration
 
-Cloud inference is optional and depends on which providers are implemented in the current application.
+Cloud inference depends on the providers supported by the current implementation.
 
-Before enabling a cloud provider:
+Before configuring a cloud model:
 
-1. Verify that its provider integration is implemented.
-2. Check the supported provider and model identifiers.
+1. Confirm that its provider integration exists.
+2. Set the supported provider and model identifiers.
 3. Add the required API key to the local `.env`.
-4. Restart the relevant services.
-5. Send a real request and inspect the resulting response and logs.
+4. Restart the application services.
+5. Test a real generation request and inspect the logs.
 
-Do not assume that automatic fallback between local and cloud providers exists. Provider switching and fallback behavior should be documented only after verification.
-
----
-
-## Using the Application
-
-A typical research workflow is:
-
-1. Register or sign in.
-2. Start a new conversation.
-3. Ask a question about product management, growth, or startup strategy.
-4. Inspect the retrieved source passages and references.
-5. Review the assistant's answer against the available evidence.
-6. Generate an essay or document when the relevant workflow is available.
-7. Open the artifact viewer to inspect supported generated content.
-8. Return to the conversation to continue the research.
-
-For reliable results, ask focused questions and verify important claims against their cited source material.
+Do not assume automatic fallback between local and cloud models unless that behavior has been implemented and verified.
 
 ---
 
-## Running and Managing the Application
+## Running the Application
 
-### Stop the services
+### Application URLs
 
-**Git Bash**
+With the documented default local configuration:
 
-```bash
-./stop.sh
-```
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend health | http://localhost:8001/health |
+| Frontend API health | http://localhost:5173/api/v1/health |
+| FastAPI documentation | http://localhost:8001/docs |
 
-**Windows**
-
-```bat
-stop.bat
-```
-
-These scripts are intended to stop the project services without deleting persistent database or vector-index data.
+The backend and frontend ports can differ if configured in `.env`.
 
 ### Check service status
 
@@ -411,25 +356,39 @@ docker compose --env-file .env ps
 docker compose --env-file .env logs -f
 ```
 
-Backend logs:
+### View backend logs
 
 ```bash
 docker compose --env-file .env logs --tail=100 backend
 ```
 
-### Validate the Compose configuration
+### Validate Docker configuration
 
 ```bash
 docker compose --env-file .env config --quiet
 ```
 
-A successful configuration check verifies Compose syntax and configuration resolution, not end-to-end application behavior.
+### Stop the application
+
+**Git Bash:**
+
+```bash
+./stop.sh
+```
+
+**Windows:**
+
+```bat
+stop.bat
+```
+
+The stop scripts are intended to stop the application without deleting persistent database or vector-index data.
+
+Avoid using `docker compose down -v` when you need to preserve existing PostgreSQL data.
 
 ---
 
-## Testing and Verification
-
-The project uses backend and frontend tests to help verify application behavior.
+## Testing
 
 ### Backend tests
 
@@ -439,7 +398,7 @@ From the repository root:
 python -m pytest backend/tests -q
 ```
 
-If the host environment does not have the required dependencies, use the project's configured Python environment or the documented container-based test command.
+Run this command in the Python environment containing the project's test dependencies.
 
 ### Frontend tests
 
@@ -451,67 +410,63 @@ npm test
 
 ### Frontend production build
 
-From the `frontend` directory:
-
 ```bash
 npm run build
 ```
 
-### Manual end-to-end verification
+### Manual verification checklist
 
-After startup, verify each workflow:
+After startup, verify the following:
 
-- [ ] Register and sign in.
-- [ ] Create separate conversations and verify their histories remain independent.
-- [ ] Ask a question supported by the indexed transcript library.
-- [ ] Confirm the assistant produces a complete answer rather than only returning retrieved excerpts.
-- [ ] Check that displayed citations resolve to real retrieved sources.
-- [ ] Ask an unsupported question and check that the system handles it appropriately.
-- [ ] Generate an essay and confirm the output is complete and saved.
-- [ ] Generate an artifact and confirm it renders correctly in the viewer.
-- [ ] Refresh the application and verify that the expected conversations and outputs persist.
-- [ ] Check logs for provider failures, timeouts, or database errors.
+- [ ] Register or sign in.
+- [ ] Create a new conversation and send a question.
+- [ ] Confirm that the answer is generated successfully.
+- [ ] Inspect retrieved sources and citation references.
+- [ ] Check how unsupported questions are handled.
+- [ ] Generate an essay and verify its structure and length.
+- [ ] Generate an artifact and confirm that it renders in the viewer.
+- [ ] Confirm generated outputs are saved.
+- [ ] Refresh the application and check conversation persistence.
+- [ ] Verify that separate conversations have independent histories.
+- [ ] Inspect logs for provider errors, timeouts, and failed requests.
 
-**Evaluation principle:** Health checks, passing unit tests, and successful model connectivity are useful signals, but they do not substitute for real end-to-end tests.
-
-Only publish specific test counts, accuracy figures, or performance benchmarks after running the corresponding tests and retaining their results.
-
----
-
-## Troubleshooting
-
-| Problem | What to check |
-|---|---|
-| Docker services fail to start | Confirm Docker Desktop is running; inspect `docker compose ps` and service logs. |
-| PostgreSQL authentication fails | Verify the actual credentials used to initialize the existing database volume. |
-| Migrations fail | Inspect backend and migration logs for connection or schema errors. |
-| A port is already in use | Change the appropriate host port in `.env` and restart the services. |
-| Ollama is unavailable | Start Ollama and test connectivity from the backend container. |
-| A model is missing | Run `ollama list` and pull the configured model if necessary. |
-| The Pi executable cannot be found | Verify that the configured executable exists and is accessible inside the backend container. |
-| Chat returns HTTP 503 | Inspect backend logs for provider, agent, or timeout errors. |
-| Answers contain only retrieved passages | Inspect the generation endpoint, provider integration, and model error logs. |
-| Essay or artifact generation fails | Test the specific generation workflow and inspect its backend errors. |
-| No relevant sources are found | Verify transcript ingestion, the collection name, and the ChromaDB persistence path. |
-
-Avoid deleting PostgreSQL volumes or the ChromaDB index as a first troubleshooting step. Preserve existing data while diagnosing configuration and connection problems.
+A passing health check confirms service availability, not complete AI functionality. Test real generation and persistence workflows before declaring them successful.
 
 ---
 
 ## Security and Data Handling
 
-Security is part of the application's design, not just its deployment configuration.
+- Keep credentials and API keys in local environment configuration.
+- Exclude `.env` and other secrets from version control.
+- Enforce authentication and ownership checks for protected resources.
+- Treat model-generated HTML and JavaScript as untrusted.
+- Apply appropriate sanitization and isolation to artifact rendering.
+- Avoid logging credentials, authentication tokens, or unnecessary sensitive content.
+- Preserve persistent database and vector-index data during routine restarts.
+- Respect the source dataset's license and redistribution restrictions.
 
-- Store credentials and API keys in local environment variables.
-- Exclude `.env`, tokens, and other secrets from version control.
-- Enforce authentication and resource-ownership checks for protected operations.
-- Treat model-generated HTML and JavaScript as untrusted content.
-- Use appropriate isolation and sanitization for artifact rendering.
-- Avoid logging secrets, authentication tokens, or unnecessary sensitive user content.
-- Preserve persistent data during normal restarts and upgrades.
-- Follow the license conditions of the transcript source.
+Security controls should be described as implemented only when the relevant code and behavior have been verified.
 
-The presence of a security-related dependency or configuration does not establish that the entire application is secure. Validate the actual implementation before describing a control as complete.
+---
+
+## Troubleshooting
+
+| Problem | Suggested action |
+|---|---|
+| Docker services fail to start | Check Docker Desktop and inspect Compose service logs. |
+| PostgreSQL authentication fails | Verify credentials against the existing database volume. |
+| Database migration fails | Inspect the migration and backend logs. |
+| A port is already in use | Configure an available host port in `.env`. |
+| Ollama is unavailable | Start Ollama and test connectivity from the backend container. |
+| A model is missing | Run `ollama list` and pull the configured model. |
+| Pi executable cannot be found | Verify that the configured executable is accessible inside the backend image. |
+| Chat returns HTTP 503 | Inspect provider, agent, and timeout errors in backend logs. |
+| The answer contains only retrieved passages | Investigate the generation prompt, provider integration, and model errors. |
+| Essay generation fails | Test the essay endpoint and inspect backend logs. |
+| Artifact generation fails | Check artifact creation, rendering, and persistence separately. |
+| No relevant sources appear | Verify transcript ingestion, collection name, and ChromaDB data path. |
+
+Do not delete PostgreSQL volumes or the ChromaDB index as a first troubleshooting step.
 
 ---
 
@@ -520,80 +475,46 @@ The presence of a security-related dependency or configuration does not establis
 ```text
 The-Lenny-Growth-Assistant/
 ├── backend/
-│   ├── app/                 # FastAPI application and core logic
-│   └── tests/               # Backend tests
+│   ├── app/
+│   └── tests/
 ├── frontend/
-│   ├── src/                 # React and TypeScript application
-│   └── package.json         # Frontend dependencies and scripts
-├── docs/                    # Architecture, design, and project documents
-├── agent-transcripts/       # Sanitized implementation and debugging notes
-├── scripts/                 # Project utility scripts
-├── docker-compose.yml       # Multi-service application configuration
-├── start.sh                 # Git Bash startup script
-├── start.bat                # Windows startup script
-├── stop.sh                  # Git Bash shutdown script
-├── stop.bat                 # Windows shutdown script
-├── .env.example             # Example configuration
-├── .gitignore               # Excluded files and local configuration
-└── README.md                # Project documentation
+│   └── src/
+├── docs/
+│   ├── screenshots/
+│   │   ├── login.png
+│   │   ├── chat-interface.png
+│   │   ├── research-results.png
+│   │   ├── essay-generation.png
+│   │   ├── artifact-generation.png
+│   │   └── appearance-settings.png
+│   ├── design.md
+│   └── architecture.md
+├── agent-transcripts/
+├── scripts/
+├── docker-compose.yml
+├── start.sh
+├── start.bat
+├── stop.sh
+├── stop.bat
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-This tree describes the main expected layout. Refer to the repository for the complete list of modules and files.
-
----
-
-## Engineering Documentation
-
-The repository's supporting documentation should explain the product and how to operate, evaluate, and extend it.
-
-| Document | Purpose |
-|---|---|
-| Product requirements / discovery brief | User problems, goals, scope, and assumptions |
-| `docs/design.md` | Interface structure and design decisions |
-| `docs/architecture.md` | System components, data flow, and architectural decisions |
-| Test plan | Automated tests and manual verification steps |
-| Agent transcripts | Sanitized implementation attempts, failures, and corrections |
-
-Refer to the actual files present in the repository. Documentation should reflect the current implementation rather than intended future behavior.
-
----
-
-## Current Status and Limitations
-
-The repository brings together a full-stack application, containerized startup, PostgreSQL persistence, semantic transcript retrieval, and AI integration.
-
-The key distinction is between **implemented components** and **verified end-to-end workflows**.
-
-In particular, chat response synthesis, citation correctness, essay generation, artifact rendering, and saved-output persistence should be considered complete only when they have been tested successfully in the running application.
-
-Known limitations and incomplete workflows should be recorded clearly so that developers and evaluators can reproduce and investigate them.
+This is an illustrative overview of the main directories. Check the repository for the exact current structure and filenames.
 
 ---
 
 ## Future Improvements
 
-Potential areas for continued development include:
+Potential improvements include:
 
-- Hybrid retrieval combining semantic search and keyword ranking.
-- Stronger automated evaluation of grounded answers and citation correctness.
-- Better handling of unsupported or ambiguous questions.
-- Streaming responses and clearer model execution status.
-- More robust validation and testing of essay and artifact generation.
-- Improved observability for retrieval latency, model failures, and end-to-end request timing.
-- Reproducible evaluation datasets and regression tests for answer quality.
+- Hybrid retrieval combining semantic and keyword search.
+- Automated evaluation of answer grounding and citation accuracy.
+- Stronger handling of unsupported questions.
+- Improved response streaming and model error reporting.
+- Better essay and artifact generation validation.
+- Retrieval and generation performance monitoring.
+- Regression tests for source attribution and answer quality.
 
-These are improvement opportunities, not claims that the functionality is already implemented.
-
----
-
-## Repository
-
-**GitHub:** [The Lenny Growth Assistant](https://github.com/Harini-sri-r/The-Lenny-Growth-Assistant)
-
-Contributions, bug reports, and suggestions for improving retrieval quality, reliability, and usability are welcome.
-
-## License and Attribution
-
-See the repository's `LICENSE` file for the software's licensing terms.
-
-The transcript dataset may be governed by a separate license. Review its terms before redistribution or commercial use, and do not include restricted source material in application images or public releases unless permitted.
+These are possible future enhancements rather than claims about existing functionality.
