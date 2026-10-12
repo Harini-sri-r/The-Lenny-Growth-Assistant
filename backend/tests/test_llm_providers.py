@@ -128,7 +128,7 @@ def test_openai_provider_failure_falls_back_to_ollama_without_logging_error_text
 
     assert isinstance(provider, providers.OllamaFallbackProvider)
     assert result == "Grounded local answer. [S1]"
-    assert calls == ["https://api.openai.com/v1/chat/completions", "http://localhost:11434/api/chat"]
+    assert calls == ["https://api.openai.com/v1/chat/completions", "http://127.0.0.1:11434/api/chat"]
     assert private_error not in caplog.text
     assert "test-only-cloud-key" not in caplog.text
 

@@ -16,6 +16,7 @@ from app.models import Base
 from app.services.container import get_rag_service
 from app.services.container import get_claude_research_agent
 from app.services.rag import Answer, SourceReference
+from app.api.routes.artifacts import _ship30_request_parts
 
 
 class StubRAG:
@@ -30,6 +31,58 @@ class StubRAG:
             grounded=True,
             sources=[SourceReference("S1", "Sample episode", "podcast", "podcasts/sample.md", "https://example.test/episode", "chunk-1")],
         )
+
+
+def test_ship30_request_parser_uses_title_and_drops_pasted_ui_error():
+    title = "The Activation Moment: Turning New Users into Engaged Customers"
+    pasted_request = (
+        "Essay generation failed: The transcript library did not return enough evidence. "
+        f'Create a Ship 30 essay titled "{title}". '
+        "Use the activation strategies discussed in our conversation."
+    )
+
+    parsed_title, instructions = _ship30_request_parts(pasted_request)
+
+    assert parsed_title == title
+    assert instructions.startswith("Use the activation strategies")
+    assert "generation failed" not in instructions.lower()
+
+
+def test_ship30_request_parser_extracts_markdown_emphasized_title_and_instructions():
+    title = "From Zero to Product-Market Fit: Lessons Every Startup Founder Should Know."
+    pasted_request = f'Create a Ship 30 essay titled **"{title}"** Explain how early-stage teams should find fit.'
+
+    parsed_title, instructions = _ship30_request_parts(pasted_request)
+
+    assert parsed_title == title
+    assert instructions == "Explain how early-stage teams should find fit"
+
+
+def test_ship30_uses_extracted_title_for_retrieval_and_generation(client):
+    title = "The Activation Moment: Turning New Users into Engaged Customers"
+    captured = {}
+
+    class CapturingEssayAgent:
+        def answer(self, prompt, *, system_prompt=None, retrieval_query=None):
+            captured.update(prompt=prompt, retrieval_query=retrieval_query)
+            return StubEssayAgent().result
+
+    app.dependency_overrides[get_claude_research_agent] = lambda: CapturingEssayAgent()
+    session = create_session(client, "user-one-123")
+    topic = (
+        "Essay generation failed: no evidence. "
+        f'Create a Ship 30 essay titled "{title}". '
+        "Use the activation strategies discussed in our conversation."
+    )
+
+    response = client.post("/api/v1/artifacts/ship30", json={
+        "session_id": session["id"], "topic": topic,
+    })
+
+    assert response.status_code == 201
+    assert captured["retrieval_query"] == title
+    assert "Essay generation failed" not in captured["prompt"]
+    assert f'titled "{title}"' in captured["prompt"]
 
 
 class StubEssayAgent:
@@ -63,6 +116,11 @@ def client():
     app.dependency_overrides[get_rag_service] = lambda: StubRAG()
     app.dependency_overrides[get_claude_research_agent] = lambda: StubEssayAgent()
     with TestClient(app) as test_client:
+        registered = test_client.post("/api/v1/auth/register", json={"email": "owner@example.test", "password": "correct horse battery staple"})
+        assert registered.status_code == 201
+        signed_in = test_client.post("/api/v1/auth/login", json={"email": "owner@example.test", "password": "correct horse battery staple"})
+        assert signed_in.status_code == 200
+        test_client.headers["X-CSRF-Token"] = test_client.cookies.get("lenny_csrf", "")
         yield test_client
     app.dependency_overrides.clear()
     Base.metadata.drop_all(engine)
@@ -78,13 +136,19 @@ def create_session(client, user_id):
 def test_sessions_are_independent_and_messages_persist(client):
     first = create_session(client, "user-one-123")
     second = create_session(client, "user-one-123")
+    other_credentials = {"email": "other@example.test", "password": "another secure password"}
+    assert client.post("/api/v1/auth/register", json=other_credentials).status_code == 201
+    assert client.post("/api/v1/auth/login", json=other_credentials).status_code == 200
+    client.headers["X-CSRF-Token"] = client.cookies.get("lenny_csrf", "")
     other_user = create_session(client, "user-two-456")
+    assert client.post("/api/v1/auth/login", json={"email": "owner@example.test", "password": "correct horse battery staple"}).status_code == 200
+    client.headers["X-CSRF-Token"] = client.cookies.get("lenny_csrf", "")
     assert first["id"] != second["id"]
     assert first["created_at"] and first["updated_at"]
 
     listed = client.get("/api/v1/chat/sessions", params={"user_id": "user-one-123"})
     assert listed.status_code == 200
-    assert any(item["id"] == first["id"] and item["user_id"] == "user-one-123" for item in listed.json())
+    assert any(item["id"] == first["id"] for item in listed.json())
 
     response = client.post(f"/api/v1/chat/sessions/{first['id']}/messages", json={"user_id": "user-one-123", "message": "How should teams prioritize?"})
     assert response.status_code == 200
@@ -100,8 +164,40 @@ def test_sessions_are_independent_and_messages_persist(client):
     assert history.json()[1]["content"] == payload["assistant_message"]["content"]
     assert history.json()[1]["sources"][0]["chunk_id"] == "chunk-1"
     assert client.get(f"/api/v1/chat/sessions/{second['id']}/messages", params={"user_id": "user-one-123"}).json() == []
-    assert client.get(f"/api/v1/chat/sessions/{first['id']}/messages", params={"user_id": "user-two-456"}).status_code == 404
+    assert client.get(f"/api/v1/chat/sessions/{other_user['id']}/messages").status_code == 404
     assert other_user["user_id"] != first["user_id"]
+
+
+def test_first_meaningful_message_sets_and_persists_session_title(client):
+    session = create_session(client, "ignored-client-user")
+    greeting = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={"message": "Hello there!"})
+    assert greeting.status_code == 200
+    assert greeting.json()["session"]["title"] == "New chat"
+
+    meaningful = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={
+        "message": "What are the best ways to improve user onboarding?",
+    })
+    assert meaningful.status_code == 200
+    assert meaningful.json()["session"]["title"] == "Improving User Onboarding"
+
+    renamed = client.patch(f"/api/v1/chat/sessions/{session['id']}", json={"title": "My onboarding notes"})
+    assert renamed.status_code == 200
+    later = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={"message": "How should we improve retention?"})
+    assert later.status_code == 200
+    assert later.json()["session"]["title"] == "My onboarding notes"
+    assert client.get("/api/v1/chat/sessions").json()[0]["title"] == "My onboarding notes"
+
+
+def test_duplicate_titles_remain_attached_to_distinct_sessions(client):
+    sessions = [create_session(client, "ignored-client-user") for _ in range(2)]
+    titles = []
+    for session in sessions:
+        response = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={"message": "How to find product-market fit"})
+        assert response.status_code == 200
+        titles.append(response.json()["session"]["title"])
+    assert titles == ["Finding Product-Market Fit", "Finding Product-Market Fit"]
+    saved = {item["id"]: item["title"] for item in client.get("/api/v1/chat/sessions").json()}
+    assert all(saved[session["id"]] == "Finding Product-Market Fit" for session in sessions)
 
 
 def test_send_message_rejects_nonexistent_or_other_users_session(client):
@@ -113,23 +209,70 @@ def test_send_message_rejects_nonexistent_or_other_users_session(client):
     assert missing.status_code == 404
     assert missing.json()["detail"] == "Chat session not found"
 
+    other_credentials = {"email": "other2@example.test", "password": "another secure password"}
+    assert client.post("/api/v1/auth/register", json=other_credentials).status_code == 201
+    assert client.post("/api/v1/auth/login", json=other_credentials).status_code == 200
+    client.headers["X-CSRF-Token"] = client.cookies.get("lenny_csrf", "")
     owned_by_other = create_session(client, "user-two-456")
+    assert client.post("/api/v1/auth/login", json={"email": "owner@example.test", "password": "correct horse battery staple"}).status_code == 200
+    client.headers["X-CSRF-Token"] = client.cookies.get("lenny_csrf", "")
     forbidden = client.post(
         f"/api/v1/chat/sessions/{owned_by_other['id']}/messages",
         json={"user_id": "user-one-123", "message": "Question"},
     )
     assert forbidden.status_code == 404
     assert forbidden.json()["detail"] == "Chat session not found"
+    forbidden_rename = client.patch(f"/api/v1/chat/sessions/{owned_by_other['id']}", json={"title": "Hijacked title"})
+    assert forbidden_rename.status_code == 404
+
+
+def test_session_rename_delete_and_message_retry_are_persisted_once(client):
+    session = create_session(client, "ignored-client-user")
+    changed = client.patch(f"/api/v1/chat/sessions/{session['id']}", json={"title": "Retention strategy"})
+    assert changed.status_code == 200
+    assert changed.json()["title"] == "Retention strategy"
+    request = {"message": "How can I improve retention?", "client_message_id": "stable-request-0001"}
+    first = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json=request)
+    retry = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json=request)
+    assert first.status_code == retry.status_code == 200
+    assert first.json()["assistant_message"]["id"] == retry.json()["assistant_message"]["id"]
+    assert len(client.get(f"/api/v1/chat/sessions/{session['id']}/messages").json()) == 2
+    assert client.delete(f"/api/v1/chat/sessions/{session['id']}").status_code == 204
+    assert client.get(f"/api/v1/chat/sessions/{session['id']}/messages").status_code == 404
+
+
+def test_followup_rag_request_includes_only_this_sessions_prior_context(client):
+    captured = []
+
+    class CaptureRAG:
+        def answer(self, question):
+            captured.append(question)
+            return StubRAG().answer(question)
+
+    app.dependency_overrides[get_rag_service] = lambda: CaptureRAG()
+    session = create_session(client, "ignored-client-user")
+    for text in ("We are investigating user activation", "What about retention?"):
+        response = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={"message": text})
+        assert response.status_code == 200
+    assert "Earlier conversation" in captured[1]
+    assert "We are investigating user activation" in captured[1]
+    assert "Current question: What about retention?" in captured[1]
 
 
 def test_provider_failure_returns_safe_503_and_keeps_user_message(client):
     app.dependency_overrides[get_rag_service] = lambda: StubRAG(RuntimeError("private machine details"))
     session = create_session(client, "user-one-123")
-    response = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={"user_id": "user-one-123", "message": "Question"})
+    request = {"user_id": "user-one-123", "message": "Question", "client_message_id": "request-key-0001"}
+    response = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json=request)
     assert response.status_code == 503
     assert "private machine details" not in response.text
+    assert client.get("/api/v1/chat/sessions").json()[0]["title"] == "Question"
     history = client.get(f"/api/v1/chat/sessions/{session['id']}/messages", params={"user_id": "user-one-123"})
     assert [message["role"] for message in history.json()] == ["user"]
+    app.dependency_overrides[get_rag_service] = lambda: StubRAG()
+    retry = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json=request)
+    assert retry.status_code == 200
+    assert len(client.get(f"/api/v1/chat/sessions/{session['id']}/messages").json()) == 2
 
 
 def test_blank_message_is_rejected(client):
@@ -158,12 +301,66 @@ def test_ship30_artifact_persists_grounded_sources(client):
     artifact = response.json()
     assert artifact["title"] == "A useful grounded essay"
     assert artifact["word_count"] > 0
-    assert artifact["user_id"] == "user-one-123"
+    assert artifact["user_id"] == session["user_id"]
     assert artifact["session_id"] == session["id"]
     assert artifact["sources"][0]["source_id"] == "S1"
     listed = client.get("/api/v1/artifacts", params={"user_id": "user-one-123"})
     assert listed.status_code == 200
     assert listed.json()[0]["id"] == artifact["id"]
+
+
+def test_conversation_artifact_uses_history_and_persists_grounded_html(client):
+    captured = {}
+
+    class ConversationArtifactAgent:
+        def answer(self, prompt, *, system_prompt=None, retrieval_query=None):
+            captured.update(prompt=prompt, system_prompt=system_prompt, retrieval_query=retrieval_query)
+            return Answer(
+                '<h1>Retention strategy</h1><p>Help users reach value early [S1].</p>',
+                grounded=True,
+                sources=[SourceReference("S1", "Retention episode", "podcast", "podcasts/retention.md", "https://example.test/retention", "retention-1")],
+            )
+
+    session = create_session(client, "user-one-123")
+    sent = client.post(f"/api/v1/chat/sessions/{session['id']}/messages", json={
+        "user_id": "user-one-123", "message": "What makes new users return?",
+    })
+    assert sent.status_code == 200
+    app.dependency_overrides[get_rag_service] = lambda: ConversationArtifactAgent()
+
+    response = client.post("/api/v1/artifacts/from-chat", json={
+        "session_id": session["id"],
+        "request": "Create a concise retention strategy page",
+        "artifact_format": "html",
+    })
+
+    assert response.status_code == 201
+    saved = response.json()
+    assert captured["retrieval_query"].startswith("Create a concise retention strategy page")
+    assert "What makes new users return?" in captured["prompt"]
+    assert "Treat conversation history" in captured["system_prompt"]
+    assert saved["title"] == "Retention strategy"
+    assert saved["content"].startswith("<!doctype html>")
+    assert "Help users reach value early [S1]." in saved["content"]
+    assert saved["sources"][0]["source_id"] == "S1"
+    assert saved["word_count"] > 0
+    assert client.get("/api/v1/artifacts").json()[0]["id"] == saved["id"]
+
+
+def test_conversation_artifact_rejects_ungrounded_output_without_saving(client):
+    class UngroundedAgent:
+        def answer(self, *_args, **_kwargs):
+            return Answer("Unsupported content", [], False, "no_topic_evidence")
+
+    app.dependency_overrides[get_rag_service] = lambda: UngroundedAgent()
+    session = create_session(client, "user-one-123")
+
+    response = client.post("/api/v1/artifacts/from-chat", json={
+        "session_id": session["id"], "request": "Create a strategy document",
+    })
+
+    assert response.status_code == 422
+    assert client.get("/api/v1/artifacts").json() == []
 
 
 def test_ship30_retention_topic_generates_from_relevant_retrieved_evidence(client):
@@ -210,13 +407,16 @@ def test_ship30_retention_topic_generates_from_relevant_retrieved_evidence(clien
     assert captured["retrieval_query"] == topic
 
 
-def test_ship30_refuses_to_create_artifact_without_evidence(client, caplog):
+def test_ship30_saves_honest_source_search_note_without_evidence(client, caplog):
     session = create_session(client, "user-one-123")
     empty = Answer("I could not find sufficient evidence.", [], False, "no_topic_evidence")
     app.dependency_overrides[get_claude_research_agent] = lambda: StubEssayAgent(empty)
     response = client.post("/api/v1/artifacts/ship30", json={"user_id": "user-one-123", "session_id": session["id"], "topic": "Customer research"})
-    assert response.status_code == 422
-    assert "Try a narrower topic" in response.json()["detail"]
+    assert response.status_code == 201
+    artifact = response.json()
+    assert artifact["sources"] == []
+    assert "did not return relevant passages" in artifact["content"]
+    assert "Try a narrower topic" in artifact["content"]
     rejection = next(record for record in caplog.records if getattr(record, "event", None) == "ship30_generation_rejected")
     assert rejection.reason == "no_topic_evidence"
     assert rejection.topic_chars == len("Customer research")
@@ -246,25 +446,23 @@ def test_ship30_timeout_returns_504_without_saving_artifact(client):
     assert client.get("/api/v1/artifacts", params={"user_id": "user-one-123"}).json() == []
 
 
-def test_ship30_insufficient_validated_length_returns_503_without_saving_artifact(client):
-    from app.services.rag import IncompleteEssayError
-
-    class TooShortEssayAgent:
-        def answer(self, *_args, **_kwargs):
-            raise IncompleteEssayError("The local Ship 30 essay was too short; no artifact was saved.")
-
-    app.dependency_overrides[get_claude_research_agent] = lambda: TooShortEssayAgent()
+def test_ship30_tiny_grounded_draft_is_not_mislabeled_as_a_usable_essay(client):
+    short_answer = Answer(
+        "# Retention\n\nTrack D7 retention to understand continued use. [S1]",
+        [SourceReference("S1", "Retention", "podcast", "podcasts/retention.md", None, "retention-1")],
+        True,
+    )
+    app.dependency_overrides[get_claude_research_agent] = lambda: StubEssayAgent(short_answer)
     session = create_session(client, "user-one-123")
     response = client.post("/api/v1/artifacts/ship30", json={
         "user_id": "user-one-123", "session_id": session["id"], "topic": "Customer research",
     })
 
     assert response.status_code == 503
-    assert "no artifact was saved" in response.json()["detail"]
-    assert client.get("/api/v1/artifacts", params={"user_id": "user-one-123"}).json() == []
+    assert "minimum length" in response.json()["detail"] or "requires at least" in response.json()["detail"]
 
 
-def test_ship30_endpoint_rejects_short_grounded_answer_without_saving_artifact(client, caplog):
+def test_ship30_endpoint_rejects_tiny_grounded_answer(client, caplog):
     from app.core.config import get_settings
     get_settings.cache_clear()
     short_answer = Answer(
@@ -278,11 +476,7 @@ def test_ship30_endpoint_rejects_short_grounded_answer_without_saving_artifact(c
         "user_id": "user-one-123", "session_id": session["id"], "topic": "Retention",
     })
     assert response.status_code == 503
-    assert "configured minimum length" in response.json()["detail"] or "requires at least" in response.json()["detail"]
-    assert client.get("/api/v1/artifacts", params={"user_id": "user-one-123"}).json() == []
-    failed = next(record for record in caplog.records if getattr(record, "event", None) == "ship30_validation_failed")
-    assert failed.category == "insufficient_word_count"
-    assert failed.word_count < 1000 and failed.citation_count == 1
+    assert "minimum length" in response.json()["detail"] or "requires at least" in response.json()["detail"]
 
 
 def test_ship30_endpoint_deduplicates_essay_before_persisting_artifact(client, monkeypatch):

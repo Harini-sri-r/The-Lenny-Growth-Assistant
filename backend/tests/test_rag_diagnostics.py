@@ -53,6 +53,21 @@ def test_json_formatter_includes_safe_exception_chain_and_traceback(caplog):
     assert "transcript" not in json.dumps(payload).lower()
 
 
+def test_json_formatter_keeps_only_the_adapter_sanitized_pi_stderr_excerpt(caplog):
+    logger = logging.getLogger("test.pi")
+    with caplog.at_level(logging.ERROR, logger="test.pi"):
+        logger.error(
+            "Pi process failed",
+            extra={"event": "pi_agent_request_failed", "failure_category": "process_error",
+                  "stderr_excerpt": "model endpoint refused connection; api_key=[REDACTED]"},
+        )
+
+    payload = json.loads(JsonFormatter().format(caplog.records[-1]))
+
+    assert payload["stderr_excerpt"] == "model endpoint refused connection; api_key=[REDACTED]"
+    assert "secret" not in json.dumps(payload)
+
+
 def test_rag_stage_failures_are_logged_even_when_success_diagnostics_are_disabled(monkeypatch, caplog):
     from app.rag.retrieval import Retriever
     from app.services.rag import RAGService

@@ -45,6 +45,57 @@ def test_pi_adapter_uses_json_final_message_and_preserves_valid_citation(monkeyp
     assert answer.answer.endswith("[S1]")
 
 
+def test_pi_ship30_prompt_does_not_request_a_disabled_search_tool(monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    event = {"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "Use interviews to test assumptions. [S1]"}]}}
+    captured = {}
+    monkeypatch.setattr("app.agents.lenny_agent.shutil.which", lambda _command: "pi.exe")
+
+    def fake_run(args, **_kwargs):
+        prompt_path = args[-1][1:]
+        captured["prompt"] = Path(prompt_path).read_text(encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout=json.dumps(event), stderr="")
+
+    monkeypatch.setattr("app.agents.lenny_agent.subprocess.run", fake_run)
+    agent = PiCodingAgent(OnePassageRetriever(), model="qwen2.5:3b", provider="ollama")
+    answer = agent.answer(
+        "Write a cited essay about customer research.",
+        system_prompt=ship30_system_prompt(), retrieval_query="customer research",
+    )
+
+    assert answer.grounded
+    assert "search_transcripts` tool before drafting" not in captured["prompt"]
+    assert "backend has already retrieved evidence for this topic" in captured["prompt"]
+    assert "Do not use tools, search, or outside knowledge" in captured["prompt"]
+
+
+def test_pi_adapter_windows_cmd_shim_does_not_quote_the_entire_command(monkeypatch):
+    import json
+    import os
+    from types import SimpleNamespace
+
+    event = {"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "Interview customers. [S1]"}]}}
+    monkeypatch.setattr("app.agents.lenny_agent.shutil.which", lambda _command: r"C:\Users\harin\AppData\Roaming\npm\pi.cmd")
+    monkeypatch.setattr("app.agents.lenny_agent.os.name", "nt")
+    captured = {}
+
+    def fake_run(args, **_kwargs):
+        captured["args"] = args
+        return SimpleNamespace(returncode=0, stdout=json.dumps(event), stderr="")
+
+    monkeypatch.setattr("app.agents.lenny_agent.subprocess.run", fake_run)
+    answer = PiCodingAgent(OnePassageRetriever(), model="qwen2.5:3b", provider="ollama").answer("customer research")
+
+    assert answer.grounded
+    assert captured["args"][:4] == [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c"]
+    command = captured["args"][4]
+    assert command.startswith(r"C:\Users\harin\AppData\Roaming\npm\pi.cmd ")
+    assert not command.startswith('"')
+    assert not command.endswith('"')
+
+
 def test_pi_adapter_bounds_subprocess_and_reports_timeout(monkeypatch):
     from subprocess import TimeoutExpired
     from types import SimpleNamespace
@@ -55,7 +106,7 @@ def test_pi_adapter_bounds_subprocess_and_reports_timeout(monkeypatch):
         assert Path(captured["prompt_path"]).is_file()
         raise TimeoutExpired("pi", 1)
     monkeypatch.setattr("app.agents.lenny_agent.subprocess.run", fake_run)
-    with pytest.raises(RuntimeError, match="Pi Coding Agent did not finish within"):
+    with pytest.raises(RuntimeError, match=r"Pi Coding Agent did not finish within its 1-second request time budget.*PI_TIMEOUT_SECONDS"):
         PiCodingAgent(OnePassageRetriever(), model="llama3:latest", provider="ollama", timeout=1).answer("customer research")
     assert not Path(captured["prompt_path"]).exists()
 
@@ -628,3 +679,36 @@ def test_ship30_rejects_when_topic_prefetch_finds_no_relevant_passages():
     assert retriever.queries == ["a topic absent from the corpus"]
     assert result.grounded is False
     assert result.sources == []
+
+
+def test_pi_ship30_keeps_cited_first_draft_when_continuation_times_out(monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    passage = Passage(
+        "Customer interviews help teams learn which problems users need solved before they design a product.",
+        {"source_path": "podcasts/research.md", "chunk_id": "research-1", "title": "Research", "document_type": "podcast"},
+        .9,
+    )
+    class Retriever:
+        def retrieve(self, _query): return [passage]
+
+    calls = {"count": 0}
+    event = {"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "# Customer research\n\nTeams should interview customers before building. [S1]"}]}}
+    monkeypatch.setattr("app.agents.lenny_agent.shutil.which", lambda _command: "pi.exe")
+    def run(*_args, **_kwargs):
+        calls["count"] += 1
+        if calls["count"] > 1:
+            raise RuntimeError("synthetic continuation failure")
+        return SimpleNamespace(returncode=0, stdout=json.dumps(event), stderr="")
+    monkeypatch.setattr("app.agents.lenny_agent.subprocess.run", run)
+
+    answer = PiCodingAgent(Retriever(), model="qwen2.5:3b", provider="ollama", ship30_minimum_words=1000).answer(
+        "Write an essay", system_prompt=ship30_system_prompt(), retrieval_query="customer research",
+    )
+
+    assert answer.grounded is True
+    assert answer.refusal_reason == "shorter_grounded_draft"
+    assert answer.sources[0].source_id == "S1"
+    assert "[S1]" in answer.answer
+    assert calls["count"] == 1

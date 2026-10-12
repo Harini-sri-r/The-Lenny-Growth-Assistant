@@ -84,6 +84,16 @@ export function Markdown({ content, className }: { content: string; className?: 
       continue
     }
 
+    if (line.includes('|') && index + 1 < lines.length && /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(lines[index + 1])) {
+      const cells = (row: string) => row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim())
+      const headers = cells(line)
+      index += 2
+      const rows: string[][] = []
+      while (index < lines.length && lines[index].includes('|') && lines[index].trim()) rows.push(cells(lines[index++]))
+      blocks.push(<div className="markdown-table-wrap" key={`table-${index}`}><table><thead><tr>{headers.map((cell, column) => <th key={column}>{renderInline(cell, `table-head-${index}-${column}`)}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={rowIndex}>{headers.map((_, column) => <td key={column}>{renderInline(row[column] ?? '', `table-cell-${index}-${rowIndex}-${column}`)}</td>)}</tr>)}</tbody></table></div>)
+      continue
+    }
+
     const paragraph: string[] = []
     while (index < lines.length && lines[index].trim() && (paragraph.length === 0 || !isBlockStart(lines[index]))) {
       paragraph.push(lines[index++])

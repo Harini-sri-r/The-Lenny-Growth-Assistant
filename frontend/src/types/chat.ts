@@ -5,6 +5,7 @@ export type Source = {
   source_path: string
   url: string | null
   chunk_id: string
+  excerpt?: string
 }
 
 export type Message = {
@@ -55,3 +56,5 @@ export type ProviderStatus = {
     model: string | null
   }>
 }
+
+export type AuthUser = { id: string; email: string; display_name: string | null; created_at: string; appearance_mode: 'light' | 'dark'; pastel_palette: 'blue' | 'lavender' | 'mint' | 'pink' | 'peach' | 'cream' }

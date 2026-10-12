@@ -70,7 +70,7 @@ class JsonFormatter(logging.Formatter):
             "continuation_output_tokens", "configured_output_token_limit", "finish_reason",
             "first_finish_reason", "truncated", "first_truncated", "max_continuations",
             "max_generation_calls", "no_progress_count", "dropped_sentences", "elapsed_ms",
-            "failure_message", "failure_category", "stderr_category", "sdk_error_category", "sdk_error_count", "exit_code", "api_error_status",
+            "failure_message", "failure_category", "stderr_category", "stderr_excerpt", "sdk_error_category", "sdk_error_count", "exit_code", "api_error_status",
             "terminal_reason", "subtype",
         ):
             if hasattr(record, key):

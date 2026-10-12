@@ -7,7 +7,7 @@ from html import escape
 from dataclasses import replace
 
 from app.agents.providers import create_llm_provider, create_ollama_provider
-from app.agents.lenny_agent import ClaudeResearchAgent, PiCodingAgent
+from app.agents.lenny_agent import ClaudeResearchAgent, PiAgentTimeoutError, PiCodingAgent
 from app.core.config import get_settings
 from app.core.rag_diagnostics import log_rag_diagnostic
 from app.rag.embeddings import OllamaEmbeddings
@@ -48,10 +48,15 @@ class _OllamaFallbackAgent:
                 answer = self.cloud_agent.answer(question, **kwargs)
                 if answer.grounded:
                     return answer
+            except PiAgentTimeoutError:
+                # A timeout consumes the configured request budget; don't start
+                # a second long generation after it expires.
+                raise
             except Exception as exc:
+                event = "pi_agent_fallback_to_ollama" if isinstance(self.cloud_agent, PiCodingAgent) else "cloud_agent_fallback_to_ollama"
                 logger.warning(
-                    "cloud_agent_fallback_to_ollama",
-                    extra={"event": "cloud_agent_fallback_to_ollama", "error_type": type(exc).__name__},
+                    event,
+                    extra={"event": event, "error_type": type(exc).__name__},
                 )
             else:
                 logger.warning(
@@ -189,12 +194,15 @@ def get_claude_research_agent():
             raise RuntimeError("Pi Gemini requires GEMINI_API_KEY")
         model = settings.ollama_model if provider == "ollama" else settings.gemini_model
         api_key = settings.gemini_api_key if provider == "gemini" else "ollama"
-        return PiCodingAgent(
+        pi_agent = PiCodingAgent(
             retriever, model=model, provider=provider, command=settings.pi_command,
             timeout=settings.pi_ship30_timeout_seconds, api_key=api_key,
             ship30_minimum_words=settings.ship30_minimum_response_words,
             ship30_max_continuations=settings.ship30_max_continuations,
         )
+        # Pi is already calling this same Ollama model. A second Ollama
+        # generation after a slow/ungrounded Pi response only duplicates work.
+        return pi_agent
     if framework == "claude_agent_sdk":
         local_agent = _ollama_rag_service(settings, retriever, ship30=True)
         if not settings.anthropic_api_key.strip():

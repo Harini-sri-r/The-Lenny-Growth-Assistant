@@ -70,8 +70,43 @@ try {
         Write-Host "WARNING: .env is absent; checking default Ollama model names." -ForegroundColor Yellow
     }
 
+    $configuredOllamaUri = $null
+    if ([System.Uri]::TryCreate($ollamaBaseUrl, [System.UriKind]::Absolute, [ref]$configuredOllamaUri) -and $configuredOllamaUri.Host -eq "localhost") {
+        $ollamaUrlBuilder = [System.UriBuilder]$configuredOllamaUri
+        $ollamaUrlBuilder.Host = "127.0.0.1"
+        $ollamaBaseUrl = $ollamaUrlBuilder.Uri.AbsoluteUri.TrimEnd('/')
+    }
+
+    $tags = $null
     try {
-        $tags = Invoke-RestMethod -Uri "$ollamaBaseUrl/api/tags" -TimeoutSec 5
+        $tags = Invoke-RestMethod -Uri "$ollamaBaseUrl/api/tags" -TimeoutSec 2
+    } catch {
+        $ollamaUri = $null
+        $isLocalOllama = [System.Uri]::TryCreate($ollamaBaseUrl, [System.UriKind]::Absolute, [ref]$ollamaUri) -and $ollamaUri.Host -in @("localhost", "127.0.0.1", "::1")
+        $ollamaCommand = Get-Command ollama -ErrorAction SilentlyContinue
+        $ollamaExecutable = if ($ollamaCommand) { $ollamaCommand.Source } else { $null }
+        if (-not $ollamaCommand -and $env:LOCALAPPDATA) {
+            $installedOllama = Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"
+            if (Test-Path -LiteralPath $installedOllama) { $ollamaExecutable = $installedOllama }
+        }
+        if ($isLocalOllama -and $ollamaExecutable) {
+            $previousOllamaHost = $env:OLLAMA_HOST
+            $env:OLLAMA_HOST = "{0}:{1}" -f $ollamaUri.Host, $ollamaUri.Port
+            try {
+                Start-Process -FilePath $ollamaExecutable -ArgumentList @("serve") -WindowStyle Hidden
+            } catch {
+                Write-Host "WARNING: Could not start the local Ollama server." -ForegroundColor Yellow
+            } finally {
+                if ($null -eq $previousOllamaHost) { Remove-Item Env:OLLAMA_HOST -ErrorAction SilentlyContinue }
+                else { $env:OLLAMA_HOST = $previousOllamaHost }
+            }
+            for ($attempt = 0; $attempt -lt 40 -and -not $tags; $attempt++) {
+                Start-Sleep -Milliseconds 500
+                try { $tags = Invoke-RestMethod -Uri "$ollamaBaseUrl/api/tags" -TimeoutSec 2 } catch { }
+            }
+        }
+    }
+    if ($tags) {
         $installedModels = @($tags.models | ForEach-Object { $_.name })
         foreach ($model in @($llmModel, $embeddingModel)) {
             if ($installedModels -contains $model) {
@@ -87,7 +122,7 @@ try {
                 $failed = $true
             }
         }
-    } catch {
+    } else {
         Write-Host "ERROR: Ollama is unreachable at the configured endpoint. Start Ollama and check OLLAMA_BASE_URL in .env." -ForegroundColor Red
         $failed = $true
     }

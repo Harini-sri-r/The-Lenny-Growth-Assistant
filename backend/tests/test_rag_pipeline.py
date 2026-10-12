@@ -280,11 +280,53 @@ def test_retrieval_overfetches_and_diversifies_sources_for_podcast_query():
     store.upsert([str(i) for i in range(5)], [f"growth evidence {i}" for i in range(5)], metadata, [[1.0, 1.0]] * 5)
     retriever = Retriever(store, FakeEmbeddings(), top_k=3, min_similarity=.5)
 
-    passages = retriever.retrieve("growth lessons from podcast transcripts")
+    passages = retriever.retrieve("growth lessons from podcast transcripts only")
 
     assert store.requested_k == 24
     assert [item.metadata["chunk_id"] for item in passages] == ["a1", "b1"]
     assert all(item.metadata["document_type"] == "podcast" for item in passages)
+
+
+def test_retrieval_includes_newsletters_when_podcast_is_mentioned_as_a_source():
+    store = MemoryStore()
+    metadata = [
+        {"source_path": "podcasts/activation.md", "chunk_id": "podcast", "document_type": "podcast"},
+        {"source_path": "newsletters/activation.md", "chunk_id": "newsletter", "document_type": "newsletter"},
+    ]
+    store.upsert(
+        ["podcast", "newsletter"], ["activation evidence", "activation evidence"],
+        metadata, [[1.0, 1.0], [1.0, 1.0]],
+    )
+    retriever = Retriever(store, FakeEmbeddings(), top_k=5, min_similarity=.5)
+
+    passages = retriever.retrieve(
+        "Ground claims in Lenny's Podcast and Newsletter about activation."
+    )
+
+    assert {item.metadata["document_type"] for item in passages} == {"podcast", "newsletter"}
+
+
+def test_activation_retrieval_adds_focused_queries_and_filters_unrelated_passages():
+    store = MemoryStore()
+    store.upsert(
+        ["podcast-activation", "newsletter-activation", "unrelated"],
+        [
+            "Move users from setup to the aha moment and habit loop.",
+            "Improve onboarding and early product activation for new users.",
+            "Enterprise sales compensation and annual contract negotiation.",
+        ],
+        [
+            {"source_path": "podcasts/activation.md", "chunk_id": "podcast-activation", "document_type": "podcast"},
+            {"source_path": "newsletters/activation.md", "chunk_id": "newsletter-activation", "document_type": "newsletter"},
+            {"source_path": "podcasts/sales.md", "chunk_id": "unrelated", "document_type": "podcast"},
+        ],
+        [[1.0, 0.0], [0.99, 0.01], [0.8, 0.2]],
+    )
+    retriever = Retriever(store, FakeEmbeddings(), top_k=5, min_similarity=.5)
+
+    passages = retriever.retrieve("The Activation Moment: Turning New Users into Engaged Customers")
+
+    assert {item.metadata["chunk_id"] for item in passages} == {"podcast-activation", "newsletter-activation"}
 
 
 def test_growth_retrieval_seeds_context_with_distinct_focused_evidence():
@@ -588,3 +630,21 @@ def test_source_references_deduplicate_same_chunk():
     from app.rag.retrieval import Passage
     passage = Passage("text", {"source_path": "one.md", "chunk_id": "c", "title": "One", "document_type": "newsletter"}, .9)
     assert len(source_references([passage, passage])) == 1
+
+
+def test_provider_failure_returns_verbatim_cited_fallback_when_evidence_is_traceable():
+    from app.rag.retrieval import Passage
+    from app.services.rag import extractive_fallback_answer
+
+    passage = Passage(
+        "Product teams should interview customers regularly to discover unmet needs before choosing solutions.",
+        {"source_path": "podcasts/research.md", "chunk_id": "chunk-1", "title": "Customer research", "document_type": "podcast"},
+        .9,
+    )
+    fallback = extractive_fallback_answer("How should teams conduct customer interviews?", [passage])
+
+    assert fallback.grounded is True
+    assert fallback.refusal_reason == "extractive_fallback"
+    assert fallback.sources[0].source_id == "S1"
+    assert "Product teams should interview customers regularly" in fallback.answer
+    assert "[S1]" in fallback.answer

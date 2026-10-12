@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api.routes.chat import router as chat_router
 from app.api.routes.artifacts import router as artifact_router
 from app.api.routes.health import router as health_router
+from app.api.routes.auth import router as auth_router
 from app.core.config import get_settings
 from app.core.logging_config import configure_logging
 from app.core.rag_diagnostics import request_id_context
@@ -19,9 +20,10 @@ settings = get_settings()
 configure_logging()
 logger = logging.getLogger("lenny.api")
 app = FastAPI(title=settings.app_name)
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
+app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "X-CSRF-Token"], expose_headers=["X-CSRF-Token", "X-Request-ID"])
 app.include_router(health_router)
 app.include_router(health_router, prefix=settings.api_v1_prefix)
+app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(chat_router, prefix=settings.api_v1_prefix)
 app.include_router(artifact_router, prefix=settings.api_v1_prefix)
 

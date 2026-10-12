@@ -1,6 +1,7 @@
 """Semantic retrieval with explicit relevance filtering."""
 from dataclasses import dataclass
 import logging
+import re
 
 from app.core.rag_diagnostics import log_rag_diagnostic
 from app.rag.embeddings import EmbeddingProvider
@@ -9,6 +10,10 @@ from app.rag.vector_store import VectorStore
 logger = logging.getLogger(__name__)
 
 _INTENT_SEARCHES = {
+    "activation": (
+        ("new_user_activation", "product activation for new users onboarding first value aha moment setup friction time to value day zero day one",),
+        ("activation_habit", "new user onboarding experience from setup to aha moment and habit loop engagement",),
+    ),
     "retention": (
         ("user_retention", "startup user retention D7 retention cohort repeat use DAU MAU stickiness dogfooding",),
         ("retention_metrics", "measure early user retention return frequency daily active users product habit",),
@@ -21,6 +26,7 @@ _INTENT_SEARCHES = {
     ),
 }
 _INTENT_TERMS = {
+    "activation": ("activation", "new user", "onboarding", "aha moment", "first value", "time to value", "day zero", "day one", "setup moment", "habit loop"),
     "retention": ("retention", "d7", "dau", "mau", "repeat use", "return rate", "daily active", "habit", "dogfood", "dogfooding", "end-user", "end user"),
     "compounding_advantage": ("accumulating advantage", "accumulating advantages", "unfair advantage", "compounding", "network effect", "moat"),
     "distribution": ("distribution", "acquisition channel", "platform strategy", "consumer channel"),
@@ -48,6 +54,8 @@ class Retriever:
             queries = [("question", query)]
             query_lower = query.lower()
             intents = []
+            if any(term in query_lower for term in ("activation", "activate new users", "new user onboarding", "aha moment", "time to value")):
+                intents.append("activation")
             if any(term in query_lower for term in ("retention", "sticky", "stickiness", "d7", "dau", "mau", "repeat use")):
                 intents.append("retention")
             if any(term in query_lower for term in ("accumulating advantage", "unfair advantage", "compounding", "moat", "network effect")):
@@ -138,7 +146,14 @@ class Retriever:
             for row, _score, _rank in ordered
             if str(row["metadata"].get("chunk_id") or row.get("text", "")) in eligible
         ]
-        podcast_only = "podcast" in query.lower() or "podcasts" in query.lower() or "episode" in query.lower() or "episodes" in query.lower()
+        # Mentioning podcasts as a source does not mean the request excludes
+        # newsletters. Restrict results only when the user explicitly asks for
+        # podcast/episode material alone.
+        podcast_only = bool(re.search(
+            r"\b(?:only\s+(?:(?:from|in|use|search|include|consider)\s+)?(?:the\s+)?(?:podcasts?|episodes?)(?:\s+transcripts?)?|(?:podcasts?|episodes?)(?:\s+transcripts?)?\s+only)\b",
+            query,
+            re.IGNORECASE,
+        ))
         counts: dict[str, int] = {}
         passages = []
         selected_chunks: set[str] = set()

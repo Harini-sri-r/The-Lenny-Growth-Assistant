@@ -1,7 +1,20 @@
 # Design direction
 
-The application uses an editorial workspace layout with warm paper tones, restrained olive accents, and clear conversation hierarchy. A compact left rail lists independent conversations. The center column contains the message history, citations, loading/error feedback, and Ship 30 for 30 generation controls. The right rail keeps saved artifacts visible alongside chat.
+## Visual system
 
-Answers show source labels with source title, type, path, and a link when the source index includes a URL. Insufficient-evidence messages show no citations. Artifacts show their recorded word count and supporting sources. Markdown is rendered as escaped preformatted text; HTML is previewed in a sandboxed iframe with a restrictive CSP so generated markup cannot execute scripts or access the parent app.
+The workspace uses warm paper and cream surfaces, espresso navigation, charcoal text, and restrained olive accents. Compact editorial headings support a readable sans-serif for long answers. Borders, radii, and spacing stay consistent, with focus-visible rings and reduced-motion support. Chat remains the primary surface; decoration stays restrained.
 
-Responsive styles hide secondary rails on narrow screens while preserving the active conversation and composer. The current workspace ID is browser-local and should be replaced by authenticated profile/session UI before a public launch.
+## Information architecture
+
+- **Sidebar:** custom Lenny mark, New chat, title search, date-grouped history, per-chat rename/delete menu, configured provider/model details, and account/logout menu.
+- **Conversation:** compact title bar, welcome state with real prompt actions, messages, source cards, loading/error/retry feedback, and a bottom-anchored multiline composer.
+- **Artifact panel:** separate Ship 30 essay and chat-to-artifact actions; saved artifact list, title, word count, sources, Markdown or isolated HTML preview, copy, and download. On small screens the sidebar and artifact panel open over chat.
+- **Authentication:** centred, responsive sign-in/create-account form with tab semantics, visible password toggle, signup confirmation, accessible mismatch feedback, busy state, and non-enumerating server errors.
+
+## Interaction and accessibility
+
+Enter sends, Shift+Enter inserts a newline, and actions have visible focus. Suggested prompts submit to the API. Conversation actions use keyboard-accessible native controls. Long content stays within readable line lengths; code and tables scroll within their own containers. Responsive breakpoints preserve the composer and navigation. Reduced-motion preferences reduce animation and transitions.
+
+## Security and known limits
+
+Account cookies are HttpOnly; state-changing requests include the CSRF token. API queries enforce account ownership. Generated Markdown uses inert React text/elements; raw HTML is only shown in a sandboxed iframe with CSP. Public launch needs further identity and abuse controls such as password recovery, email verification, and rate limiting. Browser/device testing remains a manual release check.

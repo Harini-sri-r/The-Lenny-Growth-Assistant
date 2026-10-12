@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Markdown } from './Markdown'
@@ -27,5 +28,12 @@ describe('Markdown', () => {
 
     expect(container.querySelector('script')).toBeNull()
     expect(container.querySelector('pre code')?.textContent).toBe('<script>alert(1)</script>')
+  })
+
+  it('renders Markdown tables with semantic headers and cells', () => {
+    render(<Markdown content={'| Metric | Goal |\n| --- | --- |\n| Activation | Improve |'} />)
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Metric' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Activation' })).toBeInTheDocument()
   })
 })

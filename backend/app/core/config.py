@@ -1,6 +1,8 @@
 """Environment-based application settings."""
 from functools import lru_cache
 from pathlib import Path
+import re
+from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -46,6 +48,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    auth_cookie_secure: bool = False
+    auth_session_days: int = Field(default=7, ge=1, le=30)
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
@@ -54,6 +58,18 @@ class Settings(BaseSettings):
     def resolve_project_paths(cls, value):
         path = Path(value)
         return path if path.is_absolute() else PROJECT_ROOT / path
+
+    @field_validator("ollama_base_url", mode="before")
+    @classmethod
+    def normalize_local_ollama_url(cls, value):
+        """Prefer IPv4 loopback because Windows Ollama commonly binds 127.0.0.1 only."""
+        if not isinstance(value, str):
+            return value
+        parsed = urlsplit(value.strip())
+        if parsed.hostname and parsed.hostname.lower() == "localhost":
+            netloc = re.sub(r"localhost", "127.0.0.1", parsed.netloc, count=1, flags=re.IGNORECASE)
+            return parsed._replace(netloc=netloc).geturl()
+        return value
 
     @property
     def effective_database_url(self) -> str:

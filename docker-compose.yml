@@ -1,44 +1,68 @@
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    ports: ["8000:8000"]
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
     env_file: .env
     environment:
       TRANSCRIPTS_PATH: /workspace/lennys-newsletterpodcastdata-main
-      DATABASE_URL: postgresql+psycopg://lenny:lenny@db:5432/lenny
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       CHROMA_PERSIST_DIRECTORY: /app/chroma
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./lennys-newsletterpodcastdata-main:/workspace/lennys-newsletterpodcastdata-main:ro
-      - chroma_data:/app/chroma
+      - ${CHROMA_HOST_PATH:-./chroma}:/app/chroma
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+
   frontend:
     build: ./frontend
-    ports: ["5173:80"]
-    depends_on: [backend]
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: lenny
-      POSTGRES_USER: lenny
-      POSTGRES_PASSWORD: lenny
-    volumes: ["postgres_data:/var/lib/postgresql/data"]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lenny -d lenny"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
   postgres_data:
-  chroma_data:

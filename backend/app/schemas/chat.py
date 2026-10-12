@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SessionCreate(BaseModel):
-    user_id: str = Field(min_length=8, max_length=64)
+    user_id: str | None = Field(default=None, min_length=8, max_length=64)
     display_name: str | None = Field(default=None, max_length=120)
 
 
@@ -19,8 +19,9 @@ class SessionSummary(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    user_id: str = Field(min_length=8, max_length=64)
+    user_id: str | None = Field(default=None, min_length=8, max_length=64)
     message: str = Field(min_length=1, max_length=12000)
+    client_message_id: str | None = Field(default=None, min_length=8, max_length=64)
 
     @field_validator("message")
     @classmethod
@@ -60,8 +61,20 @@ class ChatResponse(BaseModel):
     assistant_message: MessageOut
 
 
+class SessionRename(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Title cannot be blank")
+        return value
+
+
 class ArtifactRequest(BaseModel):
-    user_id: str = Field(min_length=8, max_length=64)
+    user_id: str | None = Field(default=None, min_length=8, max_length=64)
     session_id: str
     topic: str = Field(min_length=3, max_length=400)
     audience: str = Field(default="product managers and startup operators", max_length=300)
@@ -74,6 +87,20 @@ class ArtifactRequest(BaseModel):
         if not value:
             raise ValueError("Topic cannot be blank")
         return value
+
+
+class ConversationArtifactRequest(BaseModel):
+    session_id: str
+    request: str = Field(min_length=3, max_length=400)
+    artifact_format: Literal["markdown", "html"] = "markdown"
+
+    @field_validator("request")
+    @classmethod
+    def clean_request(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Describe the artifact you want")
+        return normalized
 
 
 class ArtifactOut(BaseModel):

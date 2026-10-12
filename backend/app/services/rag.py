@@ -242,6 +242,42 @@ def source_references(passages: list[Passage]) -> list[SourceReference]:
     return [ref for ref, _ in _traceable_passages(passages)]
 
 
+def extractive_fallback_answer(question: str, passages: list[Passage]) -> Answer:
+    """Return a few verbatim, cited source sentences if model generation fails."""
+    traceable = _traceable_passages(passages)
+    terms = {word.casefold() for word in re.findall(r"[\w'-]+", question) if len(word) > 2}
+    candidates: list[tuple[int, int, SourceReference, str]] = []
+    for passage_index, (ref, passage) in enumerate(traceable):
+        for sentence_index, sentence in enumerate(re.split(r"(?<=[.!?])\s+|\n+", passage.text)):
+            sentence = re.sub(r"\s+", " ", sentence).strip(" \t\r\n-*#>")
+            words = re.findall(r"[\w'-]+", sentence)
+            if len(words) >= 7:
+                overlap = len(terms & {word.casefold() for word in words})
+                candidates.append((overlap, -passage_index * 100 - sentence_index, ref, sentence))
+    candidates.sort(key=lambda row: (row[0], row[1]), reverse=True)
+    selected: list[tuple[SourceReference, str]] = []
+    seen: set[str] = set()
+    for _score, _order, ref, sentence in candidates:
+        key = re.sub(r"\W+", " ", sentence).strip().casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        words = re.findall(r"[\w'-]+", sentence)
+        if len(words) > 55:
+            sentence = " ".join(words[:55]) + "…"
+        selected.append((ref, sentence))
+        if len(selected) == 5:
+            break
+    if not selected:
+        return Answer(INSUFFICIENT_EVIDENCE, [], False, "no_extractable_passages")
+    lines = ["# Relevant source excerpts", "", "Direct excerpts from retrieved passages:", ""]
+    for ref, sentence in selected:
+        lines.append(f'- “{sentence}” [{ref.source_id}]')
+    used_ids = {ref.source_id for ref, _sentence in selected}
+    refs = [ref for ref, _passage in traceable if ref.source_id in used_ids]
+    return Answer("\n".join(lines), refs, True, "extractive_fallback")
+
+
 class RAGService:
     MAX_CONTEXT_PASSAGES = 3
     MAX_CONTEXT_CHARS_PER_PASSAGE = 850

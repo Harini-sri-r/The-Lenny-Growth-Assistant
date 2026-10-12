@@ -1,12 +1,10 @@
 # UI manual test plan
 
-Run this after the backend preflight passes, PostgreSQL migrations are applied, and both local servers are running. Use the existing ChromaDB collection. Do not run ingestion or `--reindex` for this test plan. Use only the local licensed archive, and do not include transcript passages in screenshots or recordings.
+Run after preflight, PostgreSQL migrations, and both local servers are ready. Use the existing ChromaDB collection; do not ingest or reindex for these checks.
 
 ## Start the application
 
-Use two PowerShell terminals from the project root.
-
-**Terminal 1: backend**
+**Backend terminal (project root):**
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-local.ps1
@@ -14,9 +12,9 @@ python -m alembic -c backend/alembic.ini upgrade head
 python -m uvicorn --app-dir backend app.main:app --reload
 ```
 
-The preflight is read-only. The migration command applies pending schema changes; the expected current migration is already recorded in this environment. Check `http://localhost:8000/health` before opening the UI.
+The preflight is read-only. Confirm `http://localhost:8000/health` before opening the app.
 
-**Terminal 2: frontend**
+**Frontend terminal:**
 
 ```powershell
 Set-Location .\frontend
@@ -30,17 +28,21 @@ Open the local URL Vite prints, normally `http://localhost:5173`.
 
 ## Manual checks
 
-1. In a clean browser profile, confirm conversations load and a new session appears. Refresh and confirm the session persists.
-2. Ask a question likely covered by the existing indexed archive. Confirm the answer includes source labels and source cards, and the API response has `grounded: true`. Open an available source link. Create a second conversation, verify it is independent, then return to the first.
-3. Ask an unrelated question. Confirm the assistant gives the insufficient-evidence response, `grounded: false`, and no source cards.
-4. Stop Ollama and send a message. Confirm the UI shows a safe service error, backend logs contain a diagnostic stack, and the user message/session remain. Restart Ollama and confirm a request succeeds.
-5. Generate a Markdown Ship 30 for 30 essay for a specific topic and audience. Confirm its actual word count and source list appear in the Artifact Viewer. Refresh and confirm the artifact remains.
-6. Generate an HTML essay. Confirm the preview displays inside an iframe. Inspect it in browser developer tools: the iframe has an empty `sandbox`, includes restrictive CSP, and runs no scripts or remote resources.
-7. Check narrow-screen behavior, loading state, API-down error, blank topic validation, keyboard submission, and that no credentials or transcript body appear in browser UI or logs.
+1. Register with a valid name/email, a 12-character password, and matching confirmation. Confirm a mismatch blocks submission, validation is readable, duplicate email handling is generic, login gives the same error for unknown email and wrong password, sign in and log out work, and HTTPS cookies are Secure/HttpOnly. Confirm state-changing requests carry the CSRF header.
+2. Confirm a new persisted chat appears, refresh, and confirm history remains. Search, rename, delete, and switch conversations.
+3. Create a second account. Verify it cannot list/read/delete the first account's sessions or artifacts. Return to the first account and verify its records persist.
+4. Ask a question likely covered by the existing index. Inspect citations/source cards and verify `grounded: true`; open an available source URL. Ask a follow-up and verify context comes from the selected thread.
+5. Ask an unrelated question. Confirm explicit insufficient evidence, `grounded: false`, and no source cards.
+6. Stop Ollama and send a message. Confirm a safe error and a retry action. Retry after restarting Ollama and confirm one persisted user turn, not duplicates.
+7. Generate a Markdown Ship 30 essay. Check actual length, citations, source list, and duplicate prevention. Refresh and reopen; test copy/download.
+8. From an existing conversation, generate a Markdown artifact, then generate a complete HTML/CSS artifact. Confirm both use retrieved source citations and appear in the viewer beside chat. Refresh, reopen each from the saved list, and test copy/download.
+9. Inspect HTML preview: it must use an empty-sandbox iframe and restrictive CSP. Confirm scripts, network connections, remote resources, nested frames, forms, and objects are blocked; app auth cookies/tokens are not exposed. Inline styling and `data:` images are allowed. Treat downloaded HTML as untrusted outside the viewer.
+10. Check mobile/sidebar/artifact panels, keyboard navigation, focus, reduced motion, loading/API-down states, long tables/code, and absence of secrets/transcript passages from the UI and logs.
+11. Sign out, navigate away and back with browser history, and verify the back-forward cache shows the auth loading state until `/auth/me` succeeds; revoked sessions must return to sign-in without displaying cached conversations.
 
 ## Failure handling
 
-- If preflight reports missing packages, install them with `python -m pip install -r backend/requirements.txt` in the same Python environment used to run Uvicorn.
-- If the chat endpoint returns 503, inspect the backend terminal for the server-side exception. Do not clear or re-index ChromaDB as the first troubleshooting step.
-- PostgreSQL TCP reachability from preflight does not validate credentials, database existence, schema, or application startup; migrations and the health endpoint cover separate steps.
-- An API health response verifies process liveness only. Successful supported and unsupported chat turns are required to verify RAG behavior.
+- If preflight reports missing packages, install `backend/requirements.txt` in the same Python environment used by Uvicorn.
+- For a 503, inspect the backend terminal for the sanitized diagnostic context; do not clear/rebuild ChromaDB as a first troubleshooting step.
+- PostgreSQL reachability alone does not confirm credentials/schema; migrations and API requests are separate checks.
+- Health confirms process liveness only. Verify successful grounded and unsupported chat requests separately.
